@@ -226,3 +226,12 @@ BLYNK_WRITE(V10) {
   }
   terminal.flush();
 }
+BLYNK_WRITE(V11) {
+  int buttonState = param.asInt();
+  if (buttonState == 1) {
+    terminal.println("Rebooting the main processor...");
+    terminal.flush();
+    delay(100);
+    ESP.restart();  // Restart the ESP8266
+  }
+}
