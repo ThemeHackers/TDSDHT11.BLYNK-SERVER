@@ -176,37 +176,72 @@ void checkWiFiConnection() {
 BLYNK_WRITE(V4) {
   String command = param.asStr();
 
-  if (command == "ipconfig") {
-    String ipAddress = WiFi.localIP().toString();
-    terminal.println("IP Address to reset: http://" + ipAddress + "/reset");
+  // Existing commands
+
+  if (command == "status") {
+    terminal.println("Current Status:");
+    terminal.println("TDS Value: " + String(tdsValue) + " ppm");
+    terminal.println("EC Value: " + String(ecValue));
+    terminal.println("TDS Severity: " + tdsSeverity);
     terminal.flush();
-  } else if (command == "clear") {
-    terminal.clear();
-    terminal.println("Terminal cleared...");
+  } else if (command == "temperature") {
+    terminal.println("Current Temperature Setting: " + String(temperature) + " °C");
     terminal.flush();
-  } else if (command.startsWith("ssid:")) {
-    terminal.println("SSID setting is now fixed and cannot be changed.");
+  } else if (command == "tds") {
+    terminal.println("Current TDS Value: " + String(tdsValue) + " ppm");
     terminal.flush();
-  } else if (command.startsWith("pass:")) {
-    terminal.println("Password setting is now fixed and cannot be changed.");
+  } else if (command == "ec") {
+    terminal.println("Current EC Value: " + String(ecValue));
     terminal.flush();
-  } else if (command == "save") {
-    terminal.println("Saving new WiFi credentials is not applicable.");
-    terminal.flush();
-  } else if (command.startsWith("mode:")) {
-    int mode = command.substring(5).toInt();
-    if (mode >= 1 && mode <= 3) {
-      gravityTds.setUsageMode(mode);
-      terminal.println("Mode set to: " + String(mode));
+  } else if (command.startsWith("led:")) {
+    String ledCommand = command.substring(4);
+    if (ledCommand == "on") {
+      digitalWrite(LED_BUILTIN, HIGH);
+      terminal.println("LED turned ON");
+    } else if (ledCommand == "off") {
+      digitalWrite(LED_BUILTIN, LOW);
+      terminal.println("LED turned OFF");
     } else {
-      terminal.println("Invalid mode. Use 1 for Industrial, 2 for Agriculture, or 3 for Household.");
+      terminal.println("Unknown LED command. Use 'on' or 'off'.");
     }
+    terminal.flush();
+  } else if (command == "wifi") {
+    if (WiFi.status() == WL_CONNECTED) {
+      terminal.println("WiFi is connected");
+      terminal.println("IP Address: " + WiFi.localIP().toString());
+      terminal.println("Signal Strength: " + String(WiFi.RSSI()) + " dBm");
+    } else {
+      terminal.println("WiFi is not connected");
+    }
+    terminal.flush();
+  } else if (command == "uptime") {
+    unsigned long uptime = millis() / 1000; // Convert milliseconds to seconds
+    unsigned long hours = uptime / 3600;
+    unsigned long minutes = (uptime % 3600) / 60;
+    unsigned long seconds = uptime % 60;
+    terminal.println("Uptime: " + String(hours) + " hours, " + String(minutes) + " minutes, " + String(seconds) + " seconds");
+    terminal.flush();
+  } else if (command == "resetWiFi") {
+    WiFi.disconnect();
+    WiFi.reconnect();
+    terminal.println("WiFi connection reset.");
+    terminal.flush();
+  } else if (command == "sensor") {
+    terminal.println("TDS Sensor Data:");
+    terminal.println("Temperature: " + String(temperature) + " °C");
+    terminal.println("TDS Value: " + String(tdsValue) + " ppm");
+    terminal.println("EC Value: " + String(ecValue));
+    terminal.flush();
+  } else if (command == "log") {
+    terminal.println("Recent log entries:");
+    // Add your log entries here
     terminal.flush();
   } else {
     terminal.println("Unknown command: " + command);
     terminal.flush();
   }
 }
+
 
 // Blynk function to handle button presses for mode selection
 BLYNK_WRITE(V8) {
