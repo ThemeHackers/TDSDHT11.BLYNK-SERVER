@@ -80,12 +80,23 @@ void loop() {
     ecValue = gravityTds.getEcValue();
     tdsValue = gravityTds.getTdsValue();
 
+
+    // Determine TDS severity level based on Thai standards
+    String tdsSeverity;
+    if (tdsValue < 300) {
+      tdsSeverity = "GOOD";
+    } else if (tdsValue >= 300 && tdsValue < 500) {
+      tdsSeverity = "NORMAL";
+    } else {
+      tdsSeverity = "HIGH";
+    }
+
     // Print TDS and EC values to serial monitor
-    // Serial.print("TDS: ");
-    // Serial.print(tdsValue, 0);
-    // Serial.println(" ppm");
-    // Serial.print("EC Value: ");
-    // Serial.println(ecValue);
+    Serial.print("TDS: ");
+    Serial.print(tdsValue, 0);
+    Serial.println(" ppm");
+    Serial.print("EC Value: ");
+    Serial.println(ecValue);
 
     // Control LED based on TDS value
     if (tdsValue > 18) {
@@ -108,6 +119,7 @@ void loop() {
     // Send TDS and EC values to Blynk
     Blynk.virtualWrite(V0, tdsValue);
     Blynk.virtualWrite(V7, ecValue);
+    Blynk.virtualWrite(V5, tdsSeverity);
   }
 
   // Check WiFi connection periodically
