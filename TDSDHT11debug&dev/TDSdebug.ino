@@ -9,8 +9,8 @@
 #include "GravityTDS.h"
 
 
-const char* ssid = "HackerTheme";
-const char* password = "#!@Theme171149";
+const char* ssid = "HOME65_2.4Gz";
+const char* password = "59454199";
 
 #define TdsSensorPin A0
 #define redPin D0
@@ -192,18 +192,6 @@ BLYNK_WRITE(V4) {
   } else if (command == "ec") {
     terminal.println("Current EC Value: " + String(ecValue));
     terminal.flush();
-  } else if (command.startsWith("led:")) {
-    String ledCommand = command.substring(4);
-    if (ledCommand == "on") {
-      digitalWrite(LED_BUILTIN, HIGH);
-      terminal.println("LED turned ON");
-    } else if (ledCommand == "off") {
-      digitalWrite(LED_BUILTIN, LOW);
-      terminal.println("LED turned OFF");
-    } else {
-      terminal.println("Unknown LED command. Use 'on' or 'off'.");
-    }
-    terminal.flush();
   } else if (command == "wifi") {
     if (WiFi.status() == WL_CONNECTED) {
       terminal.println("WiFi is connected");
@@ -265,7 +253,6 @@ BLYNK_WRITE(V4) {
     terminal.println("temperature     - Show current temperature setting");
     terminal.println("tds             - Show current TDS value");
     terminal.println("ec              - Show current EC value");
-    terminal.println("led:<on/off>    - Turn the LED on or off");
     terminal.println("wifi            - Show WiFi connection status");
     terminal.println("uptime          - Show system uptime");
     terminal.println("resetWiFi       - Disconnect and reconnect WiFi");
