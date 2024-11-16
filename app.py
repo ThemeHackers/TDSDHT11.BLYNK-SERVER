@@ -13,16 +13,18 @@ from collections import deque
 from flask_cors import CORS
 import os
 
-
 warnings.simplefilter("ignore", category=RuntimeWarning)
 
+# Configuration
 BLYNK_AUTH_TOKEN = 'YWNQeFFtWkZfMHN3WVBhN0FOa2FBOVprenliR2djeWo='
 BLYNK_TDS_PIN = 'V0'
 BLYNK_TEMPERATURE_PIN = 'V2'
 BLYNK_HUMIDITY_PIN = 'V3'
 BLYNK_EC_PIN = 'V7'
-WEB_SERVER_PORT = int(os.environ.get('PORT', 18901))
+WEB_SERVER_PORT = int(os.environ.get('PORT', 5000))
+TARGET_SERVER_URL = 'https://tdsdht11-blynk-server.onrender.com/'
 
+# Data storage
 MAX_READINGS = 50
 tds_readings = deque(maxlen=MAX_READINGS)
 temperature_readings = deque(maxlen=MAX_READINGS)
@@ -32,10 +34,13 @@ timestamps = deque(maxlen=MAX_READINGS)
 
 data_lock = Lock()
 decoded_token = base64.b64decode(BLYNK_AUTH_TOKEN).decode('utf-8')
+
+# Flask app and WebSocket
 app = Flask(__name__)
 app.config['DEBUG'] = False
 app.config['SECRET_KEY'] = os.urandom(24).hex()
 socketio = SocketIO(app)
+CORS(app)
 
 class StatisticalValues:
     @staticmethod
@@ -47,18 +52,6 @@ class StatisticalValues:
         return np.std(data) if data else None
 
     @staticmethod
-    def median(data):
-        return np.median(data) if data else None
-
-    @staticmethod
-    def max(data):
-        return np.max(data) if data else None
-
-    @staticmethod
-    def min(data):
-        return np.min(data) if data else None
-
-    @staticmethod
     def skewness(data):
         return skew(data) if len(data) > 3 else None
 
@@ -66,30 +59,42 @@ class StatisticalValues:
     def kurtosis(data):
         return kurtosis(data) if len(data) > 3 else None
 
-    @staticmethod
-    def coefficient_of_variation(data):
-        mean = np.mean(data)
-        std_dev = np.std(data)
-        return (std_dev / mean) * 100 if mean != 0 else None
+def send_data_to_server():
+    """Send collected data to the external server."""
+    global tds_readings, temperature_readings, humidity_readings, ec_readings, timestamps
 
-    @staticmethod
-    def percentile(data, percentile_value):
-        return np.percentile(data, percentile_value) if data else None
+    with data_lock:
+        data_payload = {
+            'timestamps': list(timestamps),
+            'tds_readings': list(tds_readings),
+            'temperature_readings': list(temperature_readings),
+            'humidity_readings': list(humidity_readings),
+            'ec_readings': list(ec_readings),
+        }
+
+    try:
+        response = requests.post(TARGET_SERVER_URL, json=data_payload)
+        if response.status_code == 200:
+            print("Data sent successfully!")
+        else:
+            print(f"Failed to send data. Status Code: {response.status_code}, Response: {response.text}")
+    except Exception as e:
+        print(f"Error sending data to server: {e}")
 
 def get_blynk_data():
+    """Fetch data from Blynk and send to the WebSocket and external server."""
     global tds_readings, temperature_readings, humidity_readings, ec_readings, timestamps
 
     try:
-  
+        # Fetch data from Blynk API
         tds_response = requests.get(f'https://blynk.cloud/external/api/get?token={decoded_token}&{BLYNK_TDS_PIN}')
         temperature_response = requests.get(f'https://blynk.cloud/external/api/get?token={decoded_token}&{BLYNK_TEMPERATURE_PIN}')
         humidity_response = requests.get(f'https://blynk.cloud/external/api/get?token={decoded_token}&{BLYNK_HUMIDITY_PIN}')
         ec_response = requests.get(f'https://blynk.cloud/external/api/get?token={decoded_token}&{BLYNK_EC_PIN}')
 
-      
         timestamp = datetime.now().strftime('%H:%M:%S')
 
-   
+        # Parse and append data
         if tds_response.status_code == 200 and tds_response.text.strip('[]'):
             tds_value = float(tds_response.text.strip('[]'))
             with data_lock:
@@ -111,6 +116,7 @@ def get_blynk_data():
             with data_lock:
                 ec_readings.append(ec_value)
 
+        # Emit data via WebSocket
         socketio.emit('update_data', {
             'timestamps': list(timestamps),
             'tds_readings': list(tds_readings),
@@ -118,11 +124,15 @@ def get_blynk_data():
             'humidity_readings': list(humidity_readings),
             'ec_readings': list(ec_readings)
         })
+
+        # Send data to external server
+        send_data_to_server()
     except Exception as e:
         print(f"Error retrieving data from Blynk API: {e}")
 
 @app.route('/')
 def home():
+    """Render the dashboard with statistics."""
     global timestamps
 
     ip_address = socket.gethostbyname(socket.gethostname())
@@ -155,6 +165,7 @@ def home():
                            timestamps=list(timestamps))
 
 def blynk_data_fetcher():
+    """Background thread for fetching Blynk data."""
     while True:
         try:
             get_blynk_data()
@@ -167,6 +178,5 @@ if __name__ == '__main__':
     blynk_thread = Thread(target=blynk_data_fetcher)
     blynk_thread.daemon = True
     blynk_thread.start()
-    
+
     socketio.run(app, port=WEB_SERVER_PORT)
-    CORS(app)
