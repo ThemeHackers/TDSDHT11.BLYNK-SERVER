@@ -10,6 +10,9 @@ import socket
 import warnings
 import base64
 from collections import deque
+from flask_cors import CORS
+import os
+
 
 warnings.simplefilter("ignore", category=RuntimeWarning)
 
@@ -18,8 +21,7 @@ BLYNK_TDS_PIN = 'V0'
 BLYNK_TEMPERATURE_PIN = 'V2'
 BLYNK_HUMIDITY_PIN = 'V3'
 BLYNK_EC_PIN = 'V7'
-WEB_SERVER_HOST = '0.0.0.0'
-WEB_SERVER_PORT = 5000
+WEB_SERVER_PORT = int(os.environ.get('PORT', 18901))
 
 MAX_READINGS = 50
 tds_readings = deque(maxlen=MAX_READINGS)
@@ -31,7 +33,8 @@ timestamps = deque(maxlen=MAX_READINGS)
 data_lock = Lock()
 decoded_token = base64.b64decode(BLYNK_AUTH_TOKEN).decode('utf-8')
 app = Flask(__name__)
-app.config['DEBUG'] = True
+app.config['DEBUG'] = False
+app.config['SECRET_KEY'] = os.urandom(24).hex()
 socketio = SocketIO(app)
 
 class StatisticalValues:
@@ -165,4 +168,5 @@ if __name__ == '__main__':
     blynk_thread.daemon = True
     blynk_thread.start()
     
-    socketio.run(app, host=WEB_SERVER_HOST, port=WEB_SERVER_PORT)
+    socketio.run(app, port=WEB_SERVER_PORT)
+    CORS(app)
