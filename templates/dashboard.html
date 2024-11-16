@@ -210,7 +210,7 @@
         Plotly.newPlot('ec-graph', [ecTrace], ecLayout);
 
         // Setup socket.io connection
-        var socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port);
+        var socket = io.connect('https://tdsdht11-blynk-server.onrender.com/');
 
         // Listen for data updates
         socket.on('update_data', function(data) {
