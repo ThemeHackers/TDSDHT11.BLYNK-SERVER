@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="refresh" content="5">
+    <title>Data Center Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f4f7f6;
+        }
+
+        .container {
+            margin-top: 30px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .card {
+            border-radius: 12px;
+            box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1);
+            background-color: #fff;
+            padding: 20px;
+            transition: transform 0.2s ease-in-out;
+        }
+
+        .card:hover {
+            transform: translateY(-10px);
+        }
+
+        .card-title {
+            font-size: 20px;
+            font-weight: 500;
+            color: #007bff;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .graph-container {
+            margin-top: 40px;
+        }
+
+        .row {
+            margin-bottom: 20px;
+        }
+
+        .col-md-3, .col-md-6 {
+            padding: 10px;
+        }
+
+        /* Graph container style */
+        #tds-graph, #temperature-graph, #humidity-graph, #ec-graph {
+            height: 300px;
+        }
+
+        /* Responsive Layout */
+        @media (max-width: 767px) {
+            .col-md-3, .col-md-6 {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Real-time Data Center Dashboard</h1>
+            <p>IP Address: {{ ip_address }}</p>
+        </div>
+
+        <!-- Statistics Section -->
+        <div class="row">
+            <div class="col-md-3">
+                <div class="card">
+                    <h5 class="card-title">TDS Stats</h5>
+                    <p class="stat-value" id="tds-mean">{{ tds_stats['mean'] }}</p>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="card">
+                    <h5 class="card-title">Temperature Stats</h5>
+                    <p class="stat-value" id="temp-mean">{{ temperature_stats['mean'] }}</p>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="card">
+                    <h5 class="card-title">Humidity Stats</h5>
+                    <p class="stat-value" id="humidity-mean">{{ humidity_stats['mean'] }}</p>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="card">
+                    <h5 class="card-title">EC Stats</h5>
+                    <p class="stat-value" id="ec-mean">{{ ec_stats['mean'] }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Graphs Section -->
+        <div class="graph-container">
+            <div class="row">
+                <div class="col-md-6">
+                    <div id="tds-graph"></div>
+                </div>
+                <div class="col-md-6">
+                    <div id="temperature-graph"></div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div id="humidity-graph"></div>
+                </div>
+                <div class="col-md-6">
+                    <div id="ec-graph"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Prepare graph data
+        var timestamps = {{ timestamps | tojson }};
+        var tdsReadings = {{ tds_readings | tojson }};
+        var temperatureReadings = {{ temperature_readings | tojson }};
+        var humidityReadings = {{ humidity_readings | tojson }};
+        var ecReadings = {{ ec_readings | tojson }};
+
+        // TDS Graph
+        var tdsTrace = {
+            x: timestamps,
+            y: tdsReadings,
+            mode: 'lines+markers',
+            name: 'TDS',
+            line: {color: 'blue'}
+        };
+        var tdsLayout = {
+            title: 'TDS Over Time',
+            xaxis: {title: 'Time'},
+            yaxis: {title: 'TDS Value'}
+        };
+        Plotly.newPlot('tds-graph', [tdsTrace], tdsLayout);
+
+        // Temperature Graph
+        var temperatureTrace = {
+            x: timestamps,
+            y: temperatureReadings,
+            mode: 'lines+markers',
+            name: 'Temperature',
+            line: {color: 'red'}
+        };
+        var temperatureLayout = {
+            title: 'Temperature Over Time',
+            xaxis: {title: 'Time'},
+            yaxis: {title: 'Temperature (°C)'}
+        };
+        Plotly.newPlot('temperature-graph', [temperatureTrace], temperatureLayout);
+
+        // Humidity Graph
+        var humidityTrace = {
+            x: timestamps,
+            y: humidityReadings,
+            mode: 'lines+markers',
+            name: 'Humidity',
+            line: {color: 'green'}
+        };
+        var humidityLayout = {
+            title: 'Humidity Over Time',
+            xaxis: {title: 'Time'},
+            yaxis: {title: 'Humidity (%)'}
+        };
+        Plotly.newPlot('humidity-graph', [humidityTrace], humidityLayout);
+
+        // EC Graph
+        var ecTrace = {
+            x: timestamps,
+            y: ecReadings,
+            mode: 'lines+markers',
+            name: 'EC',
+            line: {color: 'orange'}
+        };
+        var ecLayout = {
+            title: 'EC Over Time',
+            xaxis: {title: 'Time'},
+            yaxis: {title: 'EC Value'}
+        };
+        Plotly.newPlot('ec-graph', [ecTrace], ecLayout);
+
+        // Setup socket.io connection
+        var socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port);
+
+        // Listen for data updates
+        socket.on('update_data', function(data) {
+            // Update the stats values
+            document.getElementById('tds-mean').innerText = data.tds_stats['mean'];
+            document.getElementById('temp-mean').innerText = data.temperature_stats['mean'];
+            document.getElementById('humidity-mean').innerText = data.humidity_stats['mean'];
+            document.getElementById('ec-mean').innerText = data.ec_stats['mean'];
+
+            // Update the graphs with new data
+            Plotly.extendTraces('tds-graph', {x: [[data.timestamp]], y: [[data.tds]]}, [0]);
+            Plotly.extendTraces('temperature-graph', {x: [[data.timestamp]], y: [[data.temperature]]}, [0]);
+            Plotly.extendTraces('humidity-graph', {x: [[data.timestamp]], y: [[data.humidity]]}, [0]);
+            Plotly.extendTraces('ec-graph', {x: [[data.timestamp]], y: [[data.ec]]}, [0]);
+        });
+    </script>
+</body>
+</html>
