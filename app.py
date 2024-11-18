@@ -11,77 +11,78 @@ from colorama import Fore, init
 from flask_cors import CORS
 from modules.statistics import StatisticalValues
 import logging
-import base64
+from tenacity import retry, stop_after_attempt, wait_exponential
 
 # Initialize
 init(autoreset=True)
 
 # Logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 # Configuration
-BLYNK_AUTH_TOKEN = os.getenv('BLYNK_AUTH_TOKEN', 'default_token')  
+BLYNK_AUTH_TOKEN = os.getenv('BLYNK_AUTH_TOKEN', 'YWNQeFFtWkZfMHN3WVBhN0FOa2FBOVprenliR2djeWo=')  
 BLYNK_TDS_PIN = 'V0'
 BLYNK_TEMPERATURE_PIN = 'V2'
 BLYNK_HUMIDITY_PIN = 'V3'
 BLYNK_EC_PIN = 'V7'
 WEB_SERVER_PORT = int(os.environ.get('PORT', 10000))  
-FETCH_INTERVAL = 3  # seconds
-MAX_READINGS = 200
 
-# Shared Data
+MAX_READINGS = 200
 tds_readings = deque(maxlen=MAX_READINGS)
 temperature_readings = deque(maxlen=MAX_READINGS)
 humidity_readings = deque(maxlen=MAX_READINGS)
 ec_readings = deque(maxlen=MAX_READINGS)
 timestamps = deque(maxlen=MAX_READINGS)
 data_lock = Lock()
-should_stop = False  # Flag to safely stop the thread
 
 # Flask App
 app = Flask(__name__)
+app.config['DEBUG'] = True
 app.config['SECRET_KEY'] = os.urandom(24).hex()
-CORS(app, resources={r"/*": {"origins": ["https://your-trusted-domain.com"]}})  # Secure CORS settings
-socketio = SocketIO(app, cors_allowed_origins="https://your-trusted-domain.com", async_mode="eventlet")
+CORS(app, resources={r"/*": {"origins": "*"}}) 
 
-# Decode token if necessary
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet")
+
+# Decode token if necessary (commented out if not Base64 encoded)
 try:
     decoded_token = base64.b64decode(BLYNK_AUTH_TOKEN).decode('utf-8')
-    logger.info("Decoded Blynk Auth Token successfully.")
+    logger.debug(f"Decoded Token: {decoded_token}")
 except Exception as e:
-    logger.warning(f"Using raw token: {e}")
-    decoded_token = BLYNK_AUTH_TOKEN
+    logger.warning(f"Failed to decode token: {e}")
+    decoded_token = BLYNK_AUTH_TOKEN  # Use as is if not Base64
 
+# Fetch API Data with Retry
+@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, max=10))
+def fetch_api_data(url):
+    """Fetch data from API with retry mechanism."""
+    response = requests.get(url)
+    response.raise_for_status()  # Raise an exception for HTTP errors
+    return response.text.strip()
 
 def get_blynk_data():
     """Fetch data from Blynk API and update readings."""
     try:
-        # API Requests
-        tds_response = requests.get(f'https://blynk.cloud/external/api/get?token={decoded_token}&vpin={BLYNK_TDS_PIN}')
-        tds_response.raise_for_status()
-        temperature_response = requests.get(f'https://blynk.cloud/external/api/get?token={decoded_token}&vpin={BLYNK_TEMPERATURE_PIN}')
-        temperature_response.raise_for_status()
-        humidity_response = requests.get(f'https://blynk.cloud/external/api/get?token={decoded_token}&vpin={BLYNK_HUMIDITY_PIN}')
-        humidity_response.raise_for_status()
-        ec_response = requests.get(f'https://blynk.cloud/external/api/get?token={decoded_token}&vpin={BLYNK_EC_PIN}')
-        ec_response.raise_for_status()
+        # API Endpoints
+        tds_url = f'https://blynk.cloud/external/api/get?token={decoded_token}&vpin={BLYNK_TDS_PIN}'
+        temperature_url = f'https://blynk.cloud/external/api/get?token={decoded_token}&vpin={BLYNK_TEMPERATURE_PIN}'
+        humidity_url = f'https://blynk.cloud/external/api/get?token={decoded_token}&vpin={BLYNK_HUMIDITY_PIN}'
+        ec_url = f'https://blynk.cloud/external/api/get?token={decoded_token}&vpin={BLYNK_EC_PIN}'
         timestamp = datetime.now().strftime('%H:%M:%S')
 
-        # Process API Data
+        # Fetch data with retry
+        tds_value = round(float(fetch_api_data(tds_url)), 3)
+        temperature_value = round(float(fetch_api_data(temperature_url)), 3)
+        humidity_value = round(float(fetch_api_data(humidity_url)), 3)
+        ec_value = round(float(fetch_api_data(ec_url)), 3)
+
+        # Update data
         with data_lock:
-            if tds_response.text.strip():
-                tds_readings.append(round(float(tds_response.text.strip()), 3))
-                timestamps.append(timestamp)
-
-            if temperature_response.text.strip():
-                temperature_readings.append(round(float(temperature_response.text.strip()), 3))
-
-            if humidity_response.text.strip():
-                humidity_readings.append(round(float(humidity_response.text.strip()), 3))
-
-            if ec_response.text.strip():
-                ec_readings.append(round(float(ec_response.text.strip()), 3))
+            tds_readings.append(tds_value)
+            temperature_readings.append(temperature_value)
+            humidity_readings.append(humidity_value)
+            ec_readings.append(ec_value)
+            timestamps.append(timestamp)
 
         # Emit data to clients
         socketio.emit('update_data', {
@@ -93,60 +94,65 @@ def get_blynk_data():
         })
         logger.info("Data successfully emitted to clients.")
 
-    except requests.exceptions.RequestException as e:
-        logger.error(f"API Request failed: {e}")
     except Exception as e:
         logger.error(f"Error retrieving data: {e}")
 
-
 @app.route('/')
 def home():
-    """Render the main dashboard."""
+    global tds_readings, temperature_readings, humidity_readings, ec_readings, timestamps
+
     ip_address = socket.gethostbyname(socket.gethostname())
 
     # Calculate Statistics
-    tds_stats = {
-        'mean': round(StatisticalValues.mean(tds_readings) or 0, 2),
-        'std_dev': round(StatisticalValues.standard_deviation(tds_readings) or 0, 2),
-        'range': round(StatisticalValues.range(tds_readings) or 0, 2),
-        'variance': round(StatisticalValues.variance(tds_readings) or 0, 2),
-        'iqr': round(StatisticalValues.interquartile_range(tds_readings) or 0, 2)
-    }
+    tds_mean = StatisticalValues.mean(tds_readings)
+    tds_std_dev = StatisticalValues.standard_deviation(tds_readings)
+    tds_range = StatisticalValues.range(tds_readings)
+    tds_variance = StatisticalValues.variance(tds_readings)
+    tds_iqr = StatisticalValues.interquartile_range(tds_readings)
 
-    temperature_stats = {
-        'mean': round(StatisticalValues.mean(temperature_readings) or 0, 2),
-        'std_dev': round(StatisticalValues.standard_deviation(temperature_readings) or 0, 2)
-    }
+    temperature_mean = StatisticalValues.mean(temperature_readings)
+    temperature_std_dev = StatisticalValues.standard_deviation(temperature_readings)
 
-    humidity_stats = {
-        'mean': round(StatisticalValues.mean(humidity_readings) or 0, 2),
-        'std_dev': round(StatisticalValues.standard_deviation(humidity_readings) or 0, 2)
-    }
+    humidity_mean = StatisticalValues.mean(humidity_readings)
+    humidity_std_dev = StatisticalValues.standard_deviation(humidity_readings)
 
-    ec_stats = {
-        'mean': round(StatisticalValues.mean(ec_readings) or 0, 2),
-        'std_dev': round(StatisticalValues.standard_deviation(ec_readings) or 0, 2)
-    }
+    ec_mean = StatisticalValues.mean(ec_readings)
+    ec_std_dev = StatisticalValues.standard_deviation(ec_readings)
 
     return render_template('dashboard.html', ip_address=ip_address,
-                           tds_stats=tds_stats,
-                           temperature_stats=temperature_stats,
-                           humidity_stats=humidity_stats,
-                           ec_stats=ec_stats,
+                           tds_stats={
+                               'mean': round(tds_mean, 2) if tds_mean is not None else 0,
+                               'std_dev': round(tds_std_dev, 2) if tds_std_dev is not None else 0,
+                               'range': round(tds_range, 2) if tds_range is not None else 0,
+                               'variance': round(tds_variance, 2) if tds_variance is not None else 0,
+                               'iqr': round(tds_iqr, 2) if tds_iqr is not None else 0
+                           },
+                           temperature_stats={
+                               'mean': round(temperature_mean, 2) if temperature_mean is not None else 0,
+                               'std_dev': round(temperature_std_dev, 2) if temperature_std_dev is not None else 0
+                           },
+                           humidity_stats={
+                               'mean': round(humidity_mean, 2) if humidity_mean is not None else 0,
+                               'std_dev': round(humidity_std_dev, 2) if humidity_std_dev is not None else 0
+                           },
+                           ec_stats={
+                               'mean': round(ec_mean, 2) if ec_mean is not None else 0,
+                               'std_dev': round(ec_std_dev, 2) if ec_std_dev is not None else 0
+                           },
                            timestamps=list(timestamps),
                            tds_readings=list(tds_readings),
                            temperature_readings=list(temperature_readings),
                            humidity_readings=list(humidity_readings),
                            ec_readings=list(ec_readings))
 
-
 def blynk_data_fetcher():
-    """Thread to fetch data periodically."""
-    global should_stop
-    while not should_stop:
-        get_blynk_data()
-        time.sleep(FETCH_INTERVAL)
-
+    while True:
+        try:
+            get_blynk_data()
+            time.sleep(3)
+        except Exception as e:
+            logger.error(f"Error in data fetcher thread: {e}")
+            break
 
 if __name__ == '__main__':
     try:
@@ -158,8 +164,5 @@ if __name__ == '__main__':
         logger.info(f"Starting server on port {WEB_SERVER_PORT}...")
         socketio.run(app, host='0.0.0.0', port=WEB_SERVER_PORT)
 
-    except KeyboardInterrupt:
-        should_stop = True
-        logger.info("Stopping server...")
     except Exception as e:
-        logger.critical(f"Critical error: {e}")
+        logger.critical(f"ERROR: {e}")
