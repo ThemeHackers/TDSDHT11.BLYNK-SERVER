@@ -1,10 +1,11 @@
 import requests
 import numpy as np
 from flask import Flask, render_template
-from flask_socketio import SocketIO
+from flask_socketio import SocketIO 
 from threading import Thread, Lock
 from flask_cors import CORS
 import time
+
 from datetime import datetime
 import socket
 import warnings
@@ -12,6 +13,7 @@ import base64
 from collections import deque
 import os
 from colorama import Fore, Style, init
+import uvicorn
 
 init(autoreset=True)
 from modules.statistics import StatisticalValues
@@ -83,8 +85,21 @@ def get_blynk_data():
             'humidity_readings': list(humidity_readings),
             'ec_readings': list(ec_readings)
         })
+        print("Emitted data:", {
+            'timestamps': list(timestamps),
+            'tds_readings': list(tds_readings),
+            'temperature_readings': list(temperature_readings),
+            'humidity_readings': list(humidity_readings),
+            'ec_readings': list(ec_readings)
+        })
+
     except Exception as e:
         print(f"Error retrieving data from Blynk API: {e}")
+        print("TDS Response:", tds_response.text if 'tds_response' in locals() else "No response")
+        print("Temperature Response:", temperature_response.text if 'temperature_response' in locals() else "No response")
+        print("Humidity Response:", humidity_response.text if 'humidity_response' in locals() else "No response")
+        print("EC Response:", ec_response.text if 'ec_response' in locals() else "No response")
+
 
 
 @app.route('/')
@@ -151,8 +166,6 @@ def blynk_data_fetcher():
         except Exception as e:
             print(Fore.RED + f"Error in data fetcher thread: {e}")
             break
-
-
 if __name__ == '__main__':
     try:
         print(Fore.GREEN + "Starting Blynk data fetcher thread...")
@@ -161,6 +174,7 @@ if __name__ == '__main__':
         blynk_thread.start()
 
         print(Fore.GREEN + f"Starting server on port {WEB_SERVER_PORT}...")
-        socketio.run(app, host='0.0.0.0', port=WEB_SERVER_PORT)
+        socketio.run(app, host="0.0.0.0", port=WEB_SERVER_PORT, log_output=True)
     except Exception as e:
         print(Fore.RED + f"ERROR: {e}")
+
