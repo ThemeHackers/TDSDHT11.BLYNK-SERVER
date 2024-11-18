@@ -18,7 +18,7 @@ init(autoreset=True)
 
 warnings.simplefilter("ignore", category=RuntimeWarning)
 
-BLYNK_AUTH_TOKEN = os.getenv('BLYNK_AUTH_TOKEN', 'YWNQeFFtWkZfMHN3WVBhN0FOa2FBOVprenliR2djeWo=')  
+BLYNK_AUTH_TOKEN = os.getenv('BLYNK_AUTH_TOKEN')  
 BLYNK_TDS_PIN = 'V0'
 BLYNK_TEMPERATURE_PIN = 'V2'
 BLYNK_HUMIDITY_PIN = 'V3'
