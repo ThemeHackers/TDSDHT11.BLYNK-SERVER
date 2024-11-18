@@ -6,3 +6,4 @@ requests
 gunicorn
 flask_cors
 colorama
+uvicorn
