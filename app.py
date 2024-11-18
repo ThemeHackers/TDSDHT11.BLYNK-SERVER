@@ -19,12 +19,12 @@ from modules.statistics import StatisticalValues
 warnings.simplefilter("ignore", category=RuntimeWarning)
 
 # Blynk and server configurations
-BLYNK_AUTH_TOKEN = os.getenv('BLYNK_AUTH_TOKEN', 'YWNQeFFtWkZfMHN3WVBhN0FOa2FBOVprenliR2djeWo=')  # Token จาก environment variable
+BLYNK_AUTH_TOKEN = os.getenv('BLYNK_AUTH_TOKEN', 'YWNQeFFtWkZfMHN3WVBhN0FOa2FBOVprenliR2djeWo=')  
 BLYNK_TDS_PIN = 'V0'
 BLYNK_TEMPERATURE_PIN = 'V2'
 BLYNK_HUMIDITY_PIN = 'V3'
 BLYNK_EC_PIN = 'V7'
-WEB_SERVER_PORT = int(os.environ.get('PORT', 5000))  # พอร์ตจาก environment variable
+WEB_SERVER_PORT = int(os.environ.get('PORT', 5000))  
 
 # Data buffers and lock
 MAX_READINGS = 200
