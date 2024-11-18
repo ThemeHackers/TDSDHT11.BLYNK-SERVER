@@ -217,9 +217,10 @@
 
         // Setup socket.io connection
         var socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port);
-
         // Listen for data updates
         socket.on('update_data', function(data) {
+            // Debug log
+            console.log("Received data:", data);
             // Update the stats values
             document.getElementById('tds-mean').innerText = data.tds_stats.mean;
             document.getElementById('temp-mean').innerText = data.temperature_stats.mean;
