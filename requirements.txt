@@ -6,4 +6,6 @@ requests
 gunicorn
 flask_cors
 colorama
+gevent
+eventlet
 uvicorn
