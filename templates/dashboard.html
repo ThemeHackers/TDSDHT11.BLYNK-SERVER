@@ -3,34 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="refresh" content="5">
+    <meta http-equiv="refresh" content="3">
     <title>Data Center Dashboard</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <!-- FontAwesome for status icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
     <style>
         body {
             font-family: 'Roboto', sans-serif;
             background-color: #f4f7f6;
         }
-
         .container {
             margin-top: 30px;
         }
-
         .header {
             text-align: center;
             margin-bottom: 20px;
         }
-
         h1 {
             font-size: 2.5rem;
             font-weight: bold;
             margin-bottom: 10px;
         }
-
         .card {
             border-radius: 12px;
             box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1);
@@ -38,41 +36,43 @@
             padding: 20px;
             transition: transform 0.2s ease-in-out;
         }
-
         .card:hover {
             transform: translateY(-10px);
         }
-
         .card-title {
             font-size: 20px;
             font-weight: 500;
             color: #007bff;
+            display: flex;
+            align-items: center;
         }
-
+        .card-title i {
+            margin-left: 10px;
+            font-size: 1.2rem;
+        }
+        .text-success {
+            color: green;
+        }
+        .text-danger {
+            color: red;
+        }
         .stat-value {
             font-size: 24px;
             font-weight: 600;
             color: #333;
         }
-
         .graph-container {
             margin-top: 40px;
         }
-
         .row {
             margin-bottom: 20px;
         }
-
         .col-md-3, .col-md-6 {
             padding: 10px;
         }
-
-        /* Graph container style */
         #tds-graph, #temperature-graph, #humidity-graph, #ec-graph {
             height: 300px;
         }
-
-        /* Responsive Layout */
         @media (max-width: 767px) {
             .col-md-3, .col-md-6 {
                 flex: 0 0 100%;
@@ -87,33 +87,41 @@
             <h1>Real-time Data Center Dashboard</h1>
             <p>IP Address: {{ ip_address }}</p>
         </div>
-
         <!-- Statistics Section -->
         <div class="row">
             <div class="col-md-3">
                 <div class="card">
-                    <h5 class="card-title">TDS Stats</h5>
+                    <h5 class="card-title">
+                        TDS Stats
+                        <i id="tds-status" class="fas fa-circle"></i> <!-- Status icon -->
+                    </h5>
                     <p class="stat-value" id="tds-mean">{{ tds_stats['mean'] }}</p>
                 </div>
             </div>
-
             <div class="col-md-3">
                 <div class="card">
-                    <h5 class="card-title">Temperature Stats</h5>
+                    <h5 class="card-title">
+                        Temperature Stats
+                        <i id="temp-status" class="fas fa-circle"></i>
+                    </h5>
                     <p class="stat-value" id="temp-mean">{{ temperature_stats['mean'] }}</p>
                 </div>
             </div>
-
             <div class="col-md-3">
                 <div class="card">
-                    <h5 class="card-title">Humidity Stats</h5>
+                    <h5 class="card-title">
+                        Humidity Stats
+                        <i id="humidity-status" class="fas fa-circle"></i>
+                    </h5>
                     <p class="stat-value" id="humidity-mean">{{ humidity_stats['mean'] }}</p>
                 </div>
             </div>
-
             <div class="col-md-3">
                 <div class="card">
-                    <h5 class="card-title">EC Stats</h5>
+                    <h5 class="card-title">
+                        EC Stats
+                        <i id="ec-status" class="fas fa-circle"></i>
+                    </h5>
                     <p class="stat-value" id="ec-mean">{{ ec_stats['mean'] }}</p>
                 </div>
             </div>
@@ -129,7 +137,6 @@
                     <div id="temperature-graph"></div>
                 </div>
             </div>
-
             <div class="row">
                 <div class="col-md-6">
                     <div id="humidity-graph"></div>
@@ -142,7 +149,6 @@
     </div>
 
     <script>
-        // Prepare graph data
         var timestamps = {{ timestamps | tojson }};
         var tdsReadings = {{ tds_readings | tojson }};
         var temperatureReadings = {{ temperature_readings | tojson }};
@@ -210,22 +216,43 @@
         Plotly.newPlot('ec-graph', [ecTrace], ecLayout);
 
         // Setup socket.io connection
-        var socket = io.connect('https://tdsdht11-blynk-server.onrender.com/');
+        var socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port);
 
         // Listen for data updates
         socket.on('update_data', function(data) {
             // Update the stats values
-            document.getElementById('tds-mean').innerText = data.tds_stats['mean'];
-            document.getElementById('temp-mean').innerText = data.temperature_stats['mean'];
-            document.getElementById('humidity-mean').innerText = data.humidity_stats['mean'];
-            document.getElementById('ec-mean').innerText = data.ec_stats['mean'];
+            document.getElementById('tds-mean').innerText = data.tds_stats.mean;
+            document.getElementById('temp-mean').innerText = data.temperature_stats.mean;
+            document.getElementById('humidity-mean').innerText = data.humidity_stats.mean;
+            document.getElementById('ec-mean').innerText = data.ec_stats.mean;
 
-            // Update the graphs with new data
+            // Update the status icon based on data availability
+            updateStatusIcon(data.tds_status, 'tds-status');
+            updateStatusIcon(data.temperature_status, 'temp-status');
+            updateStatusIcon(data.humidity_status, 'humidity-status');
+            updateStatusIcon(data.ec_status, 'ec-status');
+
+            // Update the graphs dynamically
             Plotly.extendTraces('tds-graph', {x: [[data.timestamp]], y: [[data.tds]]}, [0]);
             Plotly.extendTraces('temperature-graph', {x: [[data.timestamp]], y: [[data.temperature]]}, [0]);
             Plotly.extendTraces('humidity-graph', {x: [[data.timestamp]], y: [[data.humidity]]}, [0]);
             Plotly.extendTraces('ec-graph', {x: [[data.timestamp]], y: [[data.ec]]}, [0]);
         });
+
+        // Function to update status icon
+        function updateStatusIcon(status, elementId) {
+            var icon = document.getElementById(elementId);
+            if (status === 'online') {
+                icon.classList.add('text-success');
+                icon.classList.remove('text-danger');
+                icon.classList.add('fas', 'fa-check-circle');
+            } else {
+                icon.classList.add('text-danger');
+                icon.classList.remove('text-success');
+                icon.classList.add('fas', 'fa-times-circle');
+            }
+        }
     </script>
+
 </body>
 </html>
