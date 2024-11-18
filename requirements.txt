@@ -3,5 +3,6 @@ numpy
 scipy
 flask_socketio
 requests
-gunicorn 
+gunicorn
 flask_cors
+colorama
