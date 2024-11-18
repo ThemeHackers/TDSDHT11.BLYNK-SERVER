@@ -26,7 +26,7 @@ BLYNK_TDS_PIN = 'V0'
 BLYNK_TEMPERATURE_PIN = 'V2'
 BLYNK_HUMIDITY_PIN = 'V3'
 BLYNK_EC_PIN = 'V7'
-WEB_SERVER_PORT = int(os.environ.get('PORT', 5000))  
+WEB_SERVER_PORT = int(os.environ.get('PORT', 10000))  
 
 # Data buffers and lock
 MAX_READINGS = 200
