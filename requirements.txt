@@ -9,3 +9,7 @@ colorama
 gevent
 eventlet
 uvicorn
+tenacity
+
+
+
