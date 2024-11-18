@@ -1,26 +1,23 @@
-import requests
-import numpy as np
 from flask import Flask, render_template
-from flask_socketio import SocketIO 
-from threading import Thread, Lock
-from flask_cors import CORS
-import time
-
-from datetime import datetime
-import socket
-import warnings
-import base64
-from collections import deque
+from flask_socketio import SocketIO
 import os
-from colorama import Fore, Style, init
-import uvicorn
+import time
+from threading import Thread, Lock
+import requests
+import socket
+import base64
+from datetime import datetime
+import warnings
+from collections import deque
+from colorama import Fore, init
+from flask_cors import CORS
+from modules.statistics import StatisticalValues
+import logging
 
 init(autoreset=True)
-from modules.statistics import StatisticalValues
 
 warnings.simplefilter("ignore", category=RuntimeWarning)
 
-# Blynk and server configurations
 BLYNK_AUTH_TOKEN = os.getenv('BLYNK_AUTH_TOKEN', 'YWNQeFFtWkZfMHN3WVBhN0FOa2FBOVprenliR2djeWo=')  
 BLYNK_TDS_PIN = 'V0'
 BLYNK_TEMPERATURE_PIN = 'V2'
@@ -28,7 +25,6 @@ BLYNK_HUMIDITY_PIN = 'V3'
 BLYNK_EC_PIN = 'V7'
 WEB_SERVER_PORT = int(os.environ.get('PORT', 10000))  
 
-# Data buffers and lock
 MAX_READINGS = 200
 tds_readings = deque(maxlen=MAX_READINGS)
 temperature_readings = deque(maxlen=MAX_READINGS)
@@ -37,12 +33,12 @@ ec_readings = deque(maxlen=MAX_READINGS)
 timestamps = deque(maxlen=MAX_READINGS)
 data_lock = Lock()
 
-
 app = Flask(__name__)
 app.config['DEBUG'] = True
 app.config['SECRET_KEY'] = os.urandom(24).hex()
-CORS(app, resources={r"/*": {"origins": "*"}})  
-socketio = SocketIO(app, cors_allowed_origins="*")
+CORS(app, resources={r"/*": {"origins": "*"}}) 
+
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet")
 
 decoded_token = base64.b64decode(BLYNK_AUTH_TOKEN).decode('utf-8')
 
@@ -95,11 +91,6 @@ def get_blynk_data():
 
     except Exception as e:
         print(f"Error retrieving data from Blynk API: {e}")
-        print("TDS Response:", tds_response.text if 'tds_response' in locals() else "No response")
-        print("Temperature Response:", temperature_response.text if 'temperature_response' in locals() else "No response")
-        print("Humidity Response:", humidity_response.text if 'humidity_response' in locals() else "No response")
-        print("EC Response:", ec_response.text if 'ec_response' in locals() else "No response")
-
 
 
 @app.route('/')
@@ -113,7 +104,6 @@ def home():
     timestamps = timestamps or []
 
     ip_address = socket.gethostbyname(socket.gethostname())
-
 
     tds_mean = StatisticalValues.mean(tds_readings)
     tds_std_dev = StatisticalValues.standard_deviation(tds_readings)
@@ -150,15 +140,15 @@ def home():
                                'mean': round(ec_mean, 2) if ec_mean is not None else 0,
                                'std_dev': round(ec_std_dev, 2) if ec_std_dev is not None else 0
                            },
-                           timestamps=list(timestamps),  
-                           tds_readings=list(tds_readings),  
-                           temperature_readings=list(temperature_readings),  
-                           humidity_readings=list(humidity_readings),  
-                           ec_readings=list(ec_readings))  
+                           timestamps=list(timestamps),
+                           tds_readings=list(tds_readings),
+                           temperature_readings=list(temperature_readings),
+                           humidity_readings=list(humidity_readings),
+                           ec_readings=list(ec_readings))
+
 
 
 def blynk_data_fetcher():
-    """Background thread for fetching Blynk data."""
     while True:
         try:
             get_blynk_data()
@@ -166,6 +156,8 @@ def blynk_data_fetcher():
         except Exception as e:
             print(Fore.RED + f"Error in data fetcher thread: {e}")
             break
+
+
 if __name__ == '__main__':
     try:
         print(Fore.GREEN + "Starting Blynk data fetcher thread...")
@@ -174,7 +166,9 @@ if __name__ == '__main__':
         blynk_thread.start()
 
         print(Fore.GREEN + f"Starting server on port {WEB_SERVER_PORT}...")
-        socketio.run(app, host="0.0.0.0", port=WEB_SERVER_PORT, log_output=True)
+        
+    
+        socketio.run(app, host='0.0.0.0', port=WEB_SERVER_PORT)
+
     except Exception as e:
         print(Fore.RED + f"ERROR: {e}")
-
