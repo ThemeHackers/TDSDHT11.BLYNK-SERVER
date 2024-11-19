@@ -108,8 +108,12 @@ def measure_network_usage(*urls):
         try:
             request_size = len(url.encode('utf-8'))
             total_request_size += request_size       
+            
+
             response = requests.get(url, timeout=5)
-            response.raise_for_status()            
+            response.raise_for_status()
+            
+      
             response_size = len(response.content)
             total_response_size += response_size
 
@@ -119,21 +123,27 @@ def measure_network_usage(*urls):
         except requests.exceptions.RequestException as e:
             print(Fore.RED + f"Error fetching URL: {url}, Error: {e}")
 
+    
     total_size = total_request_size + total_response_size
+    total_size_mb = total_size / (1024 * 1024)  
+
+ 
     print(Fore.BLUE + f"Total Request Size: {total_request_size} bytes")
     print(Fore.BLUE + f"Total Response Size: {total_response_size} bytes")
     print(Fore.BLUE + f"Total Data Usage: {total_size} bytes")
-    return total_size
+    print(Fore.MAGENTA + f"Total Data Usage: {total_size_mb:.10f} MB")
+    return total_size_mb
 
 tds_url = f'https://blynk.cloud/external/api/get?token={decoded_token}&{BLYNK_TDS_PIN}'
 ec_url = f'https://blynk.cloud/external/api/get?token={decoded_token}&{BLYNK_EC_PIN}'
 temperature_url = f'https://blynk.cloud/external/api/get?token={decoded_token}&{BLYNK_TEMPERATURE_PIN}'
 humidity_url = f'https://blynk.cloud/external/api/get?token={decoded_token}&{BLYNK_HUMIDITY_PIN}'
 
-data_usage = measure_network_usage(tds_url, ec_url, temperature_url, humidity_url)
+data_usage_mb = measure_network_usage(tds_url, ec_url, temperature_url, humidity_url)
 print("")
-print(Fore.MAGENTA + f"Total Data Used: {data_usage} bytes")
+print(Fore.MAGENTA + f"Total Data Used: {data_usage_mb:.10f} MB")
 print("")
+
 
 def get_blynk_data():
     """Fetch data from Blynk API and update readings."""
