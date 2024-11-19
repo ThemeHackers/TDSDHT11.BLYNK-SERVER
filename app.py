@@ -72,7 +72,7 @@ def check_server_connection():
 
     while retry_count < max_retries:
         try:
-            status_url = f'https://blynk.cloud/external/api/isHardwareConnected?token={decoded_token}'
+            status_url = f'https://fra1.blynk.cloud/external/api/isHardwareConnected?token={decoded_token}'
             response = fetch_api_data(status_url)
             
             if response == 'true':
@@ -136,19 +136,19 @@ def measure_network_usage(*urls):
     print(Fore.MAGENTA + f"Total Data Usage: {total_size_mb:.10f} MB")
     return total_size_mb
 
-tds_url = f'https://blynk.cloud/external/api/get?token={decoded_token}&{BLYNK_TDS_PIN}'
-ec_url = f'https://blynk.cloud/external/api/get?token={decoded_token}&{BLYNK_EC_PIN}'
-temperature_url = f'https://blynk.cloud/external/api/get?token={decoded_token}&{BLYNK_TEMPERATURE_PIN}'
-humidity_url = f'https://blynk.cloud/external/api/get?token={decoded_token}&{BLYNK_HUMIDITY_PIN}'
+tds_url = f'https://fra1.blynk.cloud/external/api/get?token={decoded_token}&{BLYNK_TDS_PIN}'
+ec_url = f'https://fra1.blynk.cloud/external/api/get?token={decoded_token}&{BLYNK_EC_PIN}'
+temperature_url = f'https://fra1.blynk.cloud/external/api/get?token={decoded_token}&{BLYNK_TEMPERATURE_PIN}'
+humidity_url = f'https://fra1.blynk.cloud/external/api/get?token={decoded_token}&{BLYNK_HUMIDITY_PIN}'
 data_usage_mb = measure_network_usage(tds_url, ec_url, temperature_url, humidity_url)
 
 def get_blynk_data():
     """Fetch data from Blynk API and update readings."""
     try:
-        tds_url = f'https://blynk.cloud/external/api/get?token={decoded_token}&{BLYNK_TDS_PIN}'
-        ec_url = f'https://blynk.cloud/external/api/get?token={decoded_token}&{BLYNK_EC_PIN}'
-        temperature_url = f'https://blynk.cloud/external/api/get?token={decoded_token}&{BLYNK_TEMPERATURE_PIN}'
-        humidity_url = f'https://blynk.cloud/external/api/get?token={decoded_token}&{BLYNK_HUMIDITY_PIN}'
+        tds_url = f'https://fra1.blynk.cloud/external/api/get?token={decoded_token}&{BLYNK_TDS_PIN}'
+        ec_url = f'https://fra1.blynk.cloud/external/api/get?token={decoded_token}&{BLYNK_EC_PIN}'
+        temperature_url = f'https://fra1.blynk.cloud/external/api/get?token={decoded_token}&{BLYNK_TEMPERATURE_PIN}'
+        humidity_url = f'https://fra1.blynk.cloud/external/api/get?token={decoded_token}&{BLYNK_HUMIDITY_PIN}'
         measure_network_usage(tds_url, ec_url, temperature_url, humidity_url)
         timestamp = datetime.now().strftime('%H:%M:%S')
 
