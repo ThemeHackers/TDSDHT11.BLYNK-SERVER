@@ -12,7 +12,7 @@ from flask_cors import CORS
 from modules.statistics import StatisticalValues
 import logging
 from tenacity import retry, stop_after_attempt, wait_exponential
-
+import base64
 # Initialize
 init(autoreset=True)
 
