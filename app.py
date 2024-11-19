@@ -44,7 +44,9 @@ app = Flask(__name__)
 app.config['DEBUG'] = True
 app.config['SECRET_KEY'] = os.urandom(24).hex()
 CORS(app, resources={r"/*": {"origins": "*"}})
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet")
+socketio = SocketIO(app, cors_allowed_origins="*", 
+                    ping_timeout=30, ping_interval=5, 
+                    logger=True, engineio_logger=True)
 
 try:
     decoded_token = base64.b64decode(BLYNK_AUTH_TOKEN).decode('utf-8')
@@ -138,12 +140,7 @@ tds_url = f'https://blynk.cloud/external/api/get?token={decoded_token}&{BLYNK_TD
 ec_url = f'https://blynk.cloud/external/api/get?token={decoded_token}&{BLYNK_EC_PIN}'
 temperature_url = f'https://blynk.cloud/external/api/get?token={decoded_token}&{BLYNK_TEMPERATURE_PIN}'
 humidity_url = f'https://blynk.cloud/external/api/get?token={decoded_token}&{BLYNK_HUMIDITY_PIN}'
-
 data_usage_mb = measure_network_usage(tds_url, ec_url, temperature_url, humidity_url)
-print("")
-print(Fore.MAGENTA + f"Total Data Used: {data_usage_mb:.10f} MB")
-print("")
-
 
 def get_blynk_data():
     """Fetch data from Blynk API and update readings."""
@@ -235,7 +232,7 @@ if __name__ == '__main__':
         network_thread.start()
 
         logger.info(f"Starting server on port {WEB_SERVER_PORT}...")
-        socketio.run(app, host='0.0.0.0', port=WEB_SERVER_PORT)
+        socketio.run(app, host='0.0.0.0', port=WEB_SERVER_PORT, debug=True)
 
     except KeyboardInterrupt:
         logger.info("Shutting down server gracefully.")
