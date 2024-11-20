@@ -33,19 +33,36 @@ logging.basicConfig(level=logging.DEBUG,
                     handlers=[logging.FileHandler("app.log"), logging.StreamHandler()])
 logger = logging.getLogger(__name__)
 
+data_lock = threading.Lock()
+
 def fetch_data(url, sensor_name):
     try:
         response = requests.get(url)
         response.raise_for_status()
         data = float(response.text.strip())
         
-       
-        current_time = time.time()  
-    
+        current_time = time.time()
         print(f"Data fetched for {sensor_name} at {current_time}: {data}")
         
+        with data_lock:
+            if sensor_name == "TDS":
+                data_storage["TDS"].append(data)
+                if len(data_storage["TDS"]) > MAX_DATA_POINTS:
+                    data_storage["TDS"].pop(0)
+            elif sensor_name == "EC":
+                data_storage["EC"].append(data)
+                if len(data_storage["EC"]) > MAX_DATA_POINTS:
+                    data_storage["EC"].pop(0)
+            elif sensor_name == "Temperature":
+                data_storage["Temperature"].append(data)
+                if len(data_storage["Temperature"]) > MAX_DATA_POINTS:
+                    data_storage["Temperature"].pop(0)
+            elif sensor_name == "Humidity":
+                data_storage["Humidity"].append(data)
+                if len(data_storage["Humidity"]) > MAX_DATA_POINTS:
+                    data_storage["Humidity"].pop(0)
+        
         return data
-    
     except requests.exceptions.RequestException as e:
         print(f"Error fetching data from {url}: {e}")
         return None
@@ -94,7 +111,6 @@ humidity_url = f'https://blynk.cloud/external/api/get?token={decoded_token}&{BLY
 
 @app.route("/")
 def index():
-
     tds_value = fetch_data(tds_url, "TDS")
     ec_value = fetch_data(ec_url, "EC")
     temperature_value = fetch_data(temperature_url, "Temperature")
@@ -133,6 +149,7 @@ def index():
     else:
         stats = None
 
+    # คำนวณจำนวนข้อมูลหลังจากอัปเดตเสร็จ
     data_count = {sensor: len(values) for sensor, values in data_storage.items()}
 
     return render_template(
