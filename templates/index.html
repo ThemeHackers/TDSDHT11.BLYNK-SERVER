@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="refresh" content="3">
-    <title>Real-Time Statistics Data Center</title>
+    <meta http-equiv="refresh" content="5">
+    <title>R'TSDC</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -103,6 +103,17 @@
         </div>
     </div>
 
+    <div class="container">
+        <!-- Reset Button Card -->
+        <div class="card">
+            <form action="/reset" method="post">
+                <button type="submit" style="background-color: #e74c3c; color: white; padding: 10px 20px; border: none; border-radius: 5px; width: 100%; cursor: pointer;">
+                    Reset Data
+                </button>
+            </form>
+        </div>
+    </div>
+
     <div class="stats">
         {% if stats %}
             <h3>Statistics</h3>
@@ -121,7 +132,8 @@
     </div>
 
     <div class="footer">
-        <p>&copy; 2024 Blynk Sensor Monitoring | <a href="#">Privacy Policy</a></p>
+        <p>&copy; 2024  | Real-Time Statistics Data Center | <a href="https://github.com/ThemeHackers" target="_blank">github.com/ThemeHackers</a>
+        </p>
     </div>
 
     <script>
