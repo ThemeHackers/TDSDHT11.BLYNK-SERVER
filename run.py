@@ -149,7 +149,6 @@ def index():
     else:
         stats = None
 
-    # คำนวณจำนวนข้อมูลหลังจากอัปเดตเสร็จ
     data_count = {sensor: len(values) for sensor, values in data_storage.items()}
 
     return render_template(
