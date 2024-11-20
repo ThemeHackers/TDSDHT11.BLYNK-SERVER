@@ -4,57 +4,86 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="refresh" content="3">
-    <title>Blynk Sensor Data</title>
+    <title>Real-Time Statistics Data Center</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 20px;
+            background-color: #f4f7f6;
         }
         h1 {
             text-align: center;
+            color: #2c3e50;
+            font-size: 24px;
+            margin-bottom: 20px;
         }
         .container {
             display: flex;
+            flex-wrap: wrap;
             justify-content: space-around;
+            gap: 15px;
             margin-top: 20px;
         }
         .card {
-            padding: 20px;
-            border: 1px solid #ccc;
+            background-color: #fff;
+            padding: 15px;
             border-radius: 8px;
-            width: 200px;
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+            width: 220px;
             text-align: center;
+            transition: transform 0.3s;
+            font-size: 14px;
+        }
+        .card:hover {
+            transform: scale(1.03);
+        }
+        .card h3 {
+            color: #34495e;
+            font-size: 18px;
         }
         .card p {
-            margin: 5px 0;
+            color: #7f8c8d;
+            margin: 8px 0;
+            font-size: 1em;
         }
         .stats {
-            margin-top: 20px;
+            margin-top: 30px;
+            text-align: center;
         }
         .stats div {
-            margin-bottom: 10px;
+            margin-bottom: 20px;
         }
         .footer {
             text-align: center;
-            margin-top: 40px;
+            margin-top: 50px;
+            font-size: 0.8em;
+            color: #7f8c8d;
+        }
+        .footer a {
+            color: #2980b9;
+            text-decoration: none;
+        }
+        .graph-container {
+            margin-top: 20px;
+        }
+        canvas {
+            max-width: 100%;
+            height: 200px;
         }
     </style>
 </head>
 <body>
 
-    <h1>Blynk Sensor Data</h1>
+    <h1>Real-Time Statistics Data Center</h1>
 
     <div class="container">
         <div class="card">
             <h3>TDS</h3>
             <p>Value: {{ tds }}</p>
             <p>Data Points: {{ data_count.TDS }}</p>
-        </div>
-        <div class="card">
-            <h3>EC</h3>
-            <p>Value: {{ ec }}</p>
-            <p>Data Points: {{ data_count.EC }}</p>
         </div>
         <div class="card">
             <h3>Temperature</h3>
@@ -65,6 +94,11 @@
             <h3>Humidity</h3>
             <p>Value: {{ humidity }}</p>
             <p>Data Points: {{ data_count.Humidity }}</p>
+        </div>
+        <div class="card">
+            <h3>EC (Electrical Conductivity)</h3>
+            <p>Value: {{ ec }}</p>
+            <p>Data Points: {{ data_count.EC }}</p>
         </div>
     </div>
 
@@ -77,14 +111,49 @@
                 <p>Temperature - Mean: {{ stats.Temperature.mean }}, Median: {{ stats.Temperature.median }}, Standard Deviation: {{ stats.Temperature.stdev }}</p>
                 <p>Humidity - Mean: {{ stats.Humidity.mean }}, Median: {{ stats.Humidity.median }}, Standard Deviation: {{ stats.Humidity.stdev }}</p>
             </div>
+            <div class="graph-container">
+                <canvas id="statsChart"></canvas>
+            </div>
         {% else %}
             <p>Waiting for 10 data points to calculate statistics...</p>
         {% endif %}
     </div>
 
     <div class="footer">
-        <p>&copy; 2024 Blynk Sensor Monitoring</p>
+        <p>&copy; 2024 Blynk Sensor Monitoring | <a href="#">Privacy Policy</a></p>
     </div>
+
+    <script>
+        {% if stats %}
+            const ctx = document.getElementById('statsChart').getContext('2d');
+            const statsChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['TDS', 'EC', 'Temperature', 'Humidity'],
+                    datasets: [{
+                        label: 'Mean Values',
+                        data: [
+                            {{ stats.TDS.mean }},
+                            {{ stats.EC.mean }},
+                            {{ stats.Temperature.mean }},
+                            {{ stats.Humidity.mean }}
+                        ],
+                        backgroundColor: '#3498db',
+                        borderColor: '#2980b9',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        {% endif %}
+    </script>
 
 </body>
 </html>
