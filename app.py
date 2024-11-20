@@ -42,7 +42,6 @@ data_lock = Lock()
 
 app = Flask(__name__)
 app.config['DEBUG'] = True
-app.config['SECRET_KEY'] = os.urandom(24).hex()
 CORS(app, resources={r"/*": {"origins": "*"}})
 socketio = SocketIO(app, cors_allowed_origins="*", 
                     ping_timeout=30, ping_interval=5, 
