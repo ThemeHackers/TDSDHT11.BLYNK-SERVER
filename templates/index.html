@@ -3,40 +3,88 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sensor Data and Statistics</title>
-    <script>
-        // Refresh every 5 seconds
-        setTimeout(function() {
-            window.location.reload();
-        }, 5000);
-    </script>
+    <meta http-equiv="refresh" content="3">
+    <title>Blynk Sensor Data</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+        }
+        .container {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+        }
+        .card {
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            width: 200px;
+            text-align: center;
+        }
+        .card p {
+            margin: 5px 0;
+        }
+        .stats {
+            margin-top: 20px;
+        }
+        .stats div {
+            margin-bottom: 10px;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+        }
+    </style>
 </head>
 <body>
-    <h1>Sensor Data</h1>
-    <ul>
-        <li>TDS: {{ tds }}</li>
-        <li>EC: {{ ec }}</li>
-        <li>Temperature: {{ temperature }}</li>
-        <li>Humidity: {{ humidity }}</li>
-    </ul>
-    
-    {% if calculating %}
-        <h2>กำลังคำนวณข้อมูลอยู่...</h2>
-        <p>ระบบกำลังเก็บข้อมูลครบ 200 ค่าเพื่อการวิเคราะห์</p>
-    {% else %}
-        <h2>Statistics by Sensor</h2>
-        <ul>
-            {% for sensor, stat in stats.items() %}
-            <li>
-                <h3>{{ sensor }}</h3>
-                <ul>
-                    <li>Mean: {{ stat.mean }}</li>
-                    <li>Median: {{ stat.median }}</li>
-                    <li>Standard Deviation: {{ stat.stdev }}</li>
-                </ul>
-            </li>
-            {% endfor %}
-        </ul>
-    {% endif %}
+
+    <h1>Blynk Sensor Data</h1>
+
+    <div class="container">
+        <div class="card">
+            <h3>TDS</h3>
+            <p>Value: {{ tds }}</p>
+            <p>Data Points: {{ data_count.TDS }}</p>
+        </div>
+        <div class="card">
+            <h3>EC</h3>
+            <p>Value: {{ ec }}</p>
+            <p>Data Points: {{ data_count.EC }}</p>
+        </div>
+        <div class="card">
+            <h3>Temperature</h3>
+            <p>Value: {{ temperature }}</p>
+            <p>Data Points: {{ data_count.Temperature }}</p>
+        </div>
+        <div class="card">
+            <h3>Humidity</h3>
+            <p>Value: {{ humidity }}</p>
+            <p>Data Points: {{ data_count.Humidity }}</p>
+        </div>
+    </div>
+
+    <div class="stats">
+        {% if stats %}
+            <h3>Statistics</h3>
+            <div>
+                <p>TDS - Mean: {{ stats.TDS.mean }}, Median: {{ stats.TDS.median }}, Standard Deviation: {{ stats.TDS.stdev }}</p>
+                <p>EC - Mean: {{ stats.EC.mean }}, Median: {{ stats.EC.median }}, Standard Deviation: {{ stats.EC.stdev }}</p>
+                <p>Temperature - Mean: {{ stats.Temperature.mean }}, Median: {{ stats.Temperature.median }}, Standard Deviation: {{ stats.Temperature.stdev }}</p>
+                <p>Humidity - Mean: {{ stats.Humidity.mean }}, Median: {{ stats.Humidity.median }}, Standard Deviation: {{ stats.Humidity.stdev }}</p>
+            </div>
+        {% else %}
+            <p>Waiting for 10 data points to calculate statistics...</p>
+        {% endif %}
+    </div>
+
+    <div class="footer">
+        <p>&copy; 2024 Blynk Sensor Monitoring</p>
+    </div>
+
 </body>
 </html>
