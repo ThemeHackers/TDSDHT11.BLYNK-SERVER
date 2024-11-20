@@ -18,6 +18,7 @@ BLYNK_TDS_PIN = "V0"
 BLYNK_EC_PIN = "V2"
 BLYNK_TEMPERATURE_PIN = "V3"
 BLYNK_HUMIDITY_PIN = "V7"
+WEB_SERVER_PORT = int(os.environ.get('PORT', 10000))
 
 data_storage = {
     "TDS": [],
@@ -41,10 +42,10 @@ def fetch_data(url):
 
 try:
     decoded_token = base64.b64decode(BLYNK_AUTH_TOKEN).decode('utf-8')
-    logging.debug(f"Decoded Token: {decoded_token}")
 except Exception as e:
     logging.warning(f"Failed to decode token: {e}")
     decoded_token = BLYNK_AUTH_TOKEN
+
 def check_server_connection():
     """Check if the server is connected, with up to 5 retries."""
     max_retries = 5  
@@ -98,22 +99,12 @@ def measure_network_usage(*urls):
       
             response_size = len(response.content)
             total_response_size += response_size
-
-            print(Fore.GREEN + f"URL: {url}")
-            print(Fore.YELLOW + f"Request Size: {request_size} bytes")
-            print(Fore.YELLOW + f"Response Size: {response_size} bytes")
         except requests.exceptions.RequestException as e:
             print(Fore.RED + f"Error fetching URL: {url}, Error: {e}")
 
     
     total_size = total_request_size + total_response_size
     total_size_mb = total_size / (1024 * 1024)  
-
- 
-    print(Fore.BLUE + f"Total Request Size: {total_request_size} bytes")
-    print(Fore.BLUE + f"Total Response Size: {total_response_size} bytes")
-    print(Fore.BLUE + f"Total Data Usage: {total_size} bytes")
-    print(Fore.MAGENTA + f"Total Data Usage: {total_size_mb:.10f} MB")
     return total_size_mb
 
 tds_url = f'https://blynk.cloud/external/api/get?token={decoded_token}&{BLYNK_TDS_PIN}'
@@ -179,6 +170,6 @@ def index():
         data_count=data_count  
     )
 
-
 if __name__ == "__main__":
-    app.run(debug=True)
+    check_server_connection()
+    app.run(host='0.0.0.0', port=WEB_SERVER_PORT,debug=True)
