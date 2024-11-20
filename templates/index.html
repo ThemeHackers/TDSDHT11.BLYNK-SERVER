@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sensor Data and Statistics</title>
+    <script>
+        // Refresh every 5 seconds
+        setTimeout(function() {
+            window.location.reload();
+        }, 5000);
+    </script>
+</head>
+<body>
+    <h1>Sensor Data</h1>
+    <ul>
+        <li>TDS: {{ tds }}</li>
+        <li>EC: {{ ec }}</li>
+        <li>Temperature: {{ temperature }}</li>
+        <li>Humidity: {{ humidity }}</li>
+    </ul>
+    
+    {% if calculating %}
+        <h2>กำลังคำนวณข้อมูลอยู่...</h2>
+        <p>ระบบกำลังเก็บข้อมูลครบ 200 ค่าเพื่อการวิเคราะห์</p>
+    {% else %}
+        <h2>Statistics by Sensor</h2>
+        <ul>
+            {% for sensor, stat in stats.items() %}
+            <li>
+                <h3>{{ sensor }}</h3>
+                <ul>
+                    <li>Mean: {{ stat.mean }}</li>
+                    <li>Median: {{ stat.median }}</li>
+                    <li>Standard Deviation: {{ stat.stdev }}</li>
+                </ul>
+            </li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+</body>
+</html>
