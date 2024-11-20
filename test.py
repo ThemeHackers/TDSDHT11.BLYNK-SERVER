@@ -128,12 +128,10 @@ def index():
     ec_url = f'https://blynk.cloud/external/api/get?token={decoded_token}&{BLYNK_EC_PIN}'
     temperature_url = f'https://blynk.cloud/external/api/get?token={decoded_token}&{BLYNK_TEMPERATURE_PIN}'
     humidity_url = f'https://blynk.cloud/external/api/get?token={decoded_token}&{BLYNK_HUMIDITY_PIN}'
-
     tds_value = fetch_data(tds_url)
     ec_value = fetch_data(ec_url)
     temperature_value = fetch_data(temperature_url)
     humidity_value = fetch_data(humidity_url)
-    
     if tds_value is not None:
         data_storage["TDS"].append(tds_value)
         if len(data_storage["TDS"]) > MAX_DATA_POINTS:
@@ -157,6 +155,7 @@ def index():
     calculating = any(len(values) < MAX_DATA_POINTS for values in data_storage.values())
 
     if not calculating:
+
         stats = {
             sensor: {
                 "mean": mean(values),
@@ -165,16 +164,8 @@ def index():
             }
             for sensor, values in data_storage.items()
         }
-        
-        if all(len(values) == MAX_DATA_POINTS for values in data_storage.values()):
-           
-            data_storage["TDS"].clear()
-            data_storage["EC"].clear()
-            data_storage["Temperature"].clear()
-            data_storage["Humidity"].clear()
     else:
         stats = None
-
     data_count = {sensor: len(values) for sensor, values in data_storage.items()}
 
     return render_template(
@@ -185,7 +176,7 @@ def index():
         humidity=humidity_value,
         stats=stats,
         calculating=calculating,
-        data_count=data_count
+        data_count=data_count  
     )
 
 
