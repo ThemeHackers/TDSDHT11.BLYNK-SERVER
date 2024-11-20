@@ -8,20 +8,19 @@ from statistics import mean, median, stdev
 app = Flask(__name__)
 
 # Environment variables and Blynk setup
-BLYNK_AUTH_TOKEN = os.getenv('BLYNK_AUTH_TOKEN', 'YWNQeFFtWkZfMHN3WVBhN0FOa2FBOVprenliR2djeWo=')
+BLYNK_AUTH_TOKEN = os.getenv('BLYNK_AUTH_TOKEN', 'YWNQeFFtWkZfMHN3WVBhN0FOa2FBOVprenliR2djeWo=') 
 BLYNK_TDS_PIN = "V0"
 BLYNK_EC_PIN = "V2"
 BLYNK_TEMPERATURE_PIN = "V3"
 BLYNK_HUMIDITY_PIN = "V7"
 
-# Data storage for 200 values
 data_storage = {
     "TDS": [],
     "EC": [],
     "Temperature": [],
     "Humidity": []
 }
-MAX_DATA_POINTS = 200  # จำนวนค่าที่ต้องเก็บ
+MAX_DATA_POINTS = 10  # Threshold for storing data
 
 def fetch_data(url):
     try:
@@ -56,7 +55,7 @@ def index():
     temperature_value = fetch_data(temperature_url)
     humidity_value = fetch_data(humidity_url)
 
-    # Add data to storage if valid
+    # Add new data to storage, removing the oldest if storage exceeds MAX_DATA_POINTS
     if tds_value is not None:
         data_storage["TDS"].append(tds_value)
         if len(data_storage["TDS"]) > MAX_DATA_POINTS:
@@ -77,11 +76,11 @@ def index():
         if len(data_storage["Humidity"]) > MAX_DATA_POINTS:
             data_storage["Humidity"].pop(0)
 
-    # Check if we have enough data for calculation
+    # Check if we have enough data for calculation (10 data points)
     calculating = any(len(values) < MAX_DATA_POINTS for values in data_storage.values())
 
     if not calculating:
-        # Calculate statistics for each sensor
+        # Calculate statistics for each sensor once we have 10 data points
         stats = {
             sensor: {
                 "mean": mean(values),
@@ -91,9 +90,11 @@ def index():
             for sensor, values in data_storage.items()
         }
     else:
-        stats = None  # Still calculating
+        stats = None  # Not enough data yet for calculations
 
-    # Render the template with data
+    # Count the number of data points stored for each sensor
+    data_count = {sensor: len(values) for sensor, values in data_storage.items()}
+
     return render_template(
         "index.html",
         tds=tds_value,
@@ -101,8 +102,10 @@ def index():
         temperature=temperature_value,
         humidity=humidity_value,
         stats=stats,
-        calculating=calculating
+        calculating=calculating,
+        data_count=data_count  # Pass data count to template
     )
+
 
 if __name__ == "__main__":
     app.run(debug=True)
