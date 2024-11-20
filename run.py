@@ -25,7 +25,7 @@ data_storage = {
     "Temperature": [],
     "Humidity": []
 }
-MAX_DATA_POINTS = 200
+MAX_DATA_POINTS = 10
 last_fetch_time = {}
 
 logging.basicConfig(level=logging.DEBUG,
