@@ -14,9 +14,9 @@ app.secret_key = os.urandom(24).hex()
 
 BLYNK_AUTH_TOKEN = os.getenv('BLYNK_AUTH_TOKEN', 'YWNQeFFtWkZfMHN3WVBhN0FOa2FBOVprenliR2djeWo=') 
 BLYNK_TDS_PIN = "V0"
-BLYNK_EC_PIN = "V2"
-BLYNK_TEMPERATURE_PIN = "V3"
-BLYNK_HUMIDITY_PIN = "V7"
+BLYNK_EC_PIN = "V7"
+BLYNK_TEMPERATURE_PIN = "V2"
+BLYNK_HUMIDITY_PIN = "V3"
 WEB_SERVER_PORT = int(os.environ.get('PORT', 10000))
 
 data_storage = {
@@ -25,7 +25,7 @@ data_storage = {
     "Temperature": [],
     "Humidity": []
 }
-MAX_DATA_POINTS = 200
+MAX_DATA_POINTS = 5
 last_fetch_time = {}
 
 logging.basicConfig(level=logging.DEBUG,
