@@ -38,11 +38,7 @@ def fetch_data(url, sensor_name):
         response = requests.get(url)
         response.raise_for_status()
         data = float(response.text.strip())
-        
-       
         current_time = time.time()  
-    
-        print(f"Data fetched for {sensor_name} at {current_time}: {data}")
         
         return data
     
@@ -54,14 +50,17 @@ def fetch_data(url, sensor_name):
         return None
 
 
+log_lock = threading.Lock()
+
 def network_usage_monitor():
-    """Periodically measure network usage."""
     while True:
         try:
-            measure_network_usage(tds_url, ec_url, temperature_url, humidity_url)
-            time.sleep(5)      
+            with log_lock:
+                measure_network_usage(tds_url, ec_url, temperature_url, humidity_url)
+            time.sleep(5)
         except Exception as e:
-            print(Fore.RED + f"Error in network usage monitor: {e}\n")
+            with log_lock:
+                print(Fore.RED + f"Error in network usage monitor: {e}\n")
             break
 
 def measure_network_usage(*urls):
@@ -94,12 +93,10 @@ humidity_url = f'https://blynk.cloud/external/api/get?token={decoded_token}&{BLY
 
 @app.route("/")
 def index():
-
     tds_value = fetch_data(tds_url, "TDS")
     ec_value = fetch_data(ec_url, "EC")
     temperature_value = fetch_data(temperature_url, "Temperature")
     humidity_value = fetch_data(humidity_url, "Humidity")
-
     if tds_value is not None:
         data_storage["TDS"].append(tds_value)
         if len(data_storage["TDS"]) > MAX_DATA_POINTS:
@@ -119,8 +116,8 @@ def index():
         data_storage["Humidity"].append(humidity_value)
         if len(data_storage["Humidity"]) > MAX_DATA_POINTS:
             data_storage["Humidity"].pop(0)
-
     calculating = any(len(values) < MAX_DATA_POINTS for values in data_storage.values())
+
     if not calculating:
         stats = {
             sensor: {
@@ -132,9 +129,6 @@ def index():
         }
     else:
         stats = None
-
-    data_count = {sensor: len(values) for sensor, values in data_storage.items()}
-
     return render_template(
         "index.html",
         tds=tds_value,
@@ -143,7 +137,7 @@ def index():
         humidity=humidity_value,
         stats=stats,
         calculating=calculating,
-        data_count=data_count  
+        data_count={sensor: len(values) for sensor, values in data_storage.items()}
     )
 
 @app.route("/reset", methods=["POST"])
@@ -162,7 +156,7 @@ def start_network_monitoring():
 
 if __name__ == "__main__":
     start_network_monitoring()
-    app.run(host='0.0.0.0', port=WEB_SERVER_PORT, debug=True)
+    app.run(host='0.0.0.0', port=WEB_SERVER_PORT, debug=False)
 
 
 
