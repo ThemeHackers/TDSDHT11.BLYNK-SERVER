@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="refresh" content="3">
+    <meta http-equiv="refresh" content="">
     <title>R'TSDC</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}">
@@ -14,7 +14,7 @@
             font-family: 'Roboto', sans-serif;
             margin: 0;
             padding: 20px;
-            background-color: #f4f7f6;
+            background-color: #98ffff;
             color: #34495e;
             line-height: 1.6;
         }
@@ -23,6 +23,70 @@
             display: inline-block;
             animation: bounce 1s infinite;
             margin-bottom: 15px;
+        }
+
+        .alert.success {
+            color: #219c31;
+            background-color: #ffffff;
+            padding: 10px;
+            margin-top: 20px;
+            border-radius: 5px;
+            justify-content: center
+        }
+
+        .flash-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+           
+            flex-direction: column;
+          
+            margin-top: 20px;
+            padding: 10px;
+        }
+
+        .alert {
+            font-size: 16px;
+            color: #2c3e50;
+            
+            padding: 10px 20px;
+            border-radius: 5px;
+            margin: 10px 0;
+            width: fit-content;
+           
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.08);
+           
+            background-color: rgba(236, 240, 241, 0.8);
+            
+        }
+
+        .alert.error {
+            background-color: rgba(231, 76, 60, 0.3);
+            
+        }
+
+        .alert.info {
+            background-color: rgba(52, 152, 219, 0.3);
+        }
+
+        .alert.warning {
+            background-color: rgba(241, 196, 15, 0.3);
+            
+            color: #7f8c8d;
+        }
+
+
+        .alert.error {
+            background-color: #e74c3c;
+        }
+
+        .alert.info {
+            background-color: #3498db;
+        }
+
+        .alert.warning {
+            background-color: #f1c40f;
+            color: #2c3e50;
         }
 
         @keyframes bounce {
@@ -118,17 +182,17 @@
         @keyframes pulse {
             0% {
                 transform: scale(1);
-                box-shadow: 0 0 5px rgba(231, 76, 60, 0.5);
+                box-shadow: 0 0 5px rgba(112, 250, 238, 0.8);
             }
 
             50% {
-                transform: scale(1.05);
-                box-shadow: 0 0 20px rgba(231, 76, 60, 0.8);
+                transform: scale(1.00);
+                box-shadow: 0 0 20px rgba(112, 250, 238, 0.8);
             }
 
             100% {
                 transform: scale(1);
-                box-shadow: 0 0 5px rgba(231, 76, 60, 0.5);
+                box-shadow: 0 0 5px rgba(112, 250, 238, 0.8);
             }
         }
 
@@ -236,7 +300,6 @@
                 font-size: 12px;
             }
         }
-        
     </style>
 </head>
 
@@ -278,34 +341,33 @@
         </div>
     </div>
 
-
     <div class="stats-container">
         <h3>Statistics</h3>
         {% if stats %}
         <div class="stats-columns">
             <div class="stat-item">
                 <h4>TDS</h4>
-                <p>Mean: {{ stats.TDS.mean }}</p>
+                <p>TDS Mean: {{ stats.TDS.mean | round(2) }}</p>
                 <p>Median: {{ stats.TDS.median }}</p>
-                <p>Standard Deviation: {{ stats.TDS.stdev }}</p>
+                <p>Standard Deviation: {{ stats.TDS.stdev | round(2)}}</p>
             </div>
             <div class="stat-item">
                 <h4>EC</h4>
                 <p>Mean: {{ stats.EC.mean }}</p>
-                <p>Median: {{ stats.EC.median }}</p>
-                <p>Standard Deviation: {{ stats.EC.stdev }}</p>
+                <p>EC Mean: {{ stats.EC.mean | round(2) }}</p>
+                <p>Standard Deviation: {{ stats.EC.stdev | round(2)}}</p>
             </div>
             <div class="stat-item">
                 <h4>Temperature</h4>
                 <p>Mean: {{ stats.Temperature.mean }}</p>
-                <p>Median: {{ stats.Temperature.median }}</p>
-                <p>Standard Deviation: {{ stats.Temperature.stdev }}</p>
+                <p>Temperature Mean: {{ stats.Temperature.mean | round(2) }}</p>
+                <p>Standard Deviation: {{ stats.Temperature.stdev | round(2) }}</p>
             </div>
             <div class="stat-item">
                 <h4>Humidity</h4>
                 <p>Mean: {{ stats.Humidity.mean }}</p>
-                <p>Median: {{ stats.Humidity.median }}</p>
-                <p>Standard Deviation: {{ stats.Humidity.stdev }}</p>
+                <p>Humidity Mean: {{ stats.Humidity.mean | round(2) }}</p>
+                <p>Standard Deviation: {{ stats.Humidity.stdev | round(2) }}</p>
             </div>
         </div>
         {% else %}
@@ -314,40 +376,140 @@
     </div>
 
     <div class="graph-container">
-        <h3>Live Data Graph</h3>
-        <canvas id="graph" width="400" height="200"></canvas>
+        <h3>Live Data Graphs</h3>
+        <canvas id="graphTDS" width="400" height="200"></canvas>
+        <canvas id="graphEC" width="400" height="200"></canvas>
+        <canvas id="graphTemperature" width="400" height="200"></canvas>
+        <canvas id="graphHumidity" width="400" height="200"></canvas>
     </div>
-
+    <form action="{{ url_for('reset_data') }}" method="post" style="margin-top: 20px;">
+        <button type="submit" class="reset-button">Reset Data</button>
+    </form>
+    <div class="flash-container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert {{ category }}">{{ message }}</div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+    </div>
     <footer>
         <p style="font-family: Arial, sans-serif; color: #ffffff; font-size: 14px; text-align: center;">
             &copy; Real-Time Statistics Data Center 2024
             | <a href="https://github.com/ThemeHackers" target="_blank"
                 style="color: #ffffff; text-decoration: none;">GitHub - ThemeHackers</a>
         </p>
-
     </footer>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        var ctx = document.getElementById('graph').getContext('2d');
-        var graph = new Chart(ctx, {
+        var socket = io.connect('http://' + document.domain + ':' + location.port);
+    
+        var ctxTDS = document.getElementById('graphTDS').getContext('2d');
+        var graphTDS = new Chart(ctxTDS, {
             type: 'line',
             data: {
-                labels: {{ timestamps }},
-        datasets: [{
-            label: 'TDS',
-            data: {{ tds_data }},
-            borderColor: 'rgba(52, 152, 219, 1)',
-            backgroundColor: 'rgba(52, 152, 219, 0.2)',
-            fill: true
+                labels: [], 
+                datasets: [{
+                    label: 'TDS',
+                    data: [], 
+                    borderColor: 'rgba(52, 152, 219, 1)',
+                    backgroundColor: 'rgba(52, 152, 219, 0.2)',
+                    fill: true
                 }]
             },
-        options: {
-            scales: {
-                y: {
-                    beginAtZero: true
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
                 }
             }
-        }
+        });
+    
+        var ctxEC = document.getElementById('graphEC').getContext('2d');
+        var graphEC = new Chart(ctxEC, {
+            type: 'line',
+            data: {
+                labels: [], 
+                datasets: [{
+                    label: 'EC',
+                    data: [], 
+                    borderColor: 'rgba(155, 89, 182, 1)',
+                    backgroundColor: 'rgba(155, 89, 182, 0.2)',
+                    fill: true
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    
+        var ctxTemperature = document.getElementById('graphTemperature').getContext('2d');
+        var graphTemperature = new Chart(ctxTemperature, {
+            type: 'line',
+            data: {
+                labels: [], 
+                datasets: [{
+                    label: 'Temperature',
+                    data: [], 
+                    borderColor: 'rgba(26, 188, 156, 1)',
+                    backgroundColor: 'rgba(26, 188, 156, 0.2)',
+                    fill: true
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    
+        var ctxHumidity = document.getElementById('graphHumidity').getContext('2d');
+        var graphHumidity = new Chart(ctxHumidity, {
+            type: 'line',
+            data: {
+                labels: [], 
+                datasets: [{
+                    label: 'Humidity',
+                    data: [],
+                    borderColor: 'rgba(231, 76, 60, 1)',
+                    backgroundColor: 'rgba(231, 76, 60, 0.2)',
+                    fill: true
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    
+        socket.on('update_data', function (data) {
+            graphTDS.data.labels = data.timestamps;
+            graphTDS.data.datasets[0].data = data.tds_readings;
+            graphTDS.update();
+    
+            graphEC.data.labels = data.timestamps;
+            graphEC.data.datasets[0].data = data.ec_readings;
+            graphEC.update();
+    
+
+            graphTemperature.data.labels = data.timestamps;
+            graphTemperature.data.datasets[0].data = data.temperature_readings;
+            graphTemperature.update();
+    
+            
+            graphHumidity.data.labels = data.timestamps;
+            graphHumidity.data.datasets[0].data = data.humidity_readings;
+            graphHumidity.update();
         });
     </script>
 </body>
