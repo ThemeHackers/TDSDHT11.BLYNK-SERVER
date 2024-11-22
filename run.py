@@ -1,4 +1,4 @@
-from flask import Flask, render_template, redirect, flash
+from flask import Flask, render_template, redirect, flash, jsonify
 import requests
 import os
 import base64
@@ -26,8 +26,6 @@ data_storage = {
     "Humidity": []
 }
 MAX_DATA_POINTS = 5
-last_fetch_time = {}
-
 logging.basicConfig(level=logging.DEBUG,
                     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
                     handlers=[logging.FileHandler("app.log"), logging.StreamHandler()])
@@ -90,13 +88,15 @@ tds_url = f'https://blynk.cloud/external/api/get?token={decoded_token}&{BLYNK_TD
 ec_url = f'https://blynk.cloud/external/api/get?token={decoded_token}&{BLYNK_EC_PIN}'
 temperature_url = f'https://blynk.cloud/external/api/get?token={decoded_token}&{BLYNK_TEMPERATURE_PIN}'
 humidity_url = f'https://blynk.cloud/external/api/get?token={decoded_token}&{BLYNK_HUMIDITY_PIN}'
-
+data_send_count = 0
 @app.route("/")
 def index():
+    global data_send_count 
     tds_value = fetch_data(tds_url, "TDS")
     ec_value = fetch_data(ec_url, "EC")
     temperature_value = fetch_data(temperature_url, "Temperature")
     humidity_value = fetch_data(humidity_url, "Humidity")
+    
     if tds_value is not None:
         data_storage["TDS"].append(tds_value)
         if len(data_storage["TDS"]) > MAX_DATA_POINTS:
@@ -116,6 +116,7 @@ def index():
         data_storage["Humidity"].append(humidity_value)
         if len(data_storage["Humidity"]) > MAX_DATA_POINTS:
             data_storage["Humidity"].pop(0)
+
     calculating = any(len(values) < MAX_DATA_POINTS for values in data_storage.values())
 
     if not calculating:
@@ -129,18 +130,52 @@ def index():
         }
     else:
         stats = None
+    data_send_count += 1
 
     return render_template(
-    "index.html",
-    tds=tds_value,
-    ec=ec_value,
-    temperature=temperature_value,
-    humidity=humidity_value,
-    stats=stats,
-    calculating=calculating,
-    data_count={sensor: len(values) for sensor, values in data_storage.items()}
+        "index.html",
+        tds=tds_value,
+        ec=ec_value,
+        temperature=temperature_value,
+        humidity=humidity_value,
+        stats=stats,
+        calculating=calculating,
+        data_count={sensor: len(values) for sensor, values in data_storage.items()},
+        data_send_count=data_send_count  
     )
+    
+@app.route("/update_data", methods=["GET"])
+def update_data():
+    tds_value = fetch_data(tds_url, "TDS")
+    ec_value = fetch_data(ec_url, "EC")
+    temperature_value = fetch_data(temperature_url, "Temperature")
+    humidity_value = fetch_data(humidity_url, "Humidity")
 
+    if tds_value is not None:
+        data_storage["TDS"].append(tds_value)
+    if ec_value is not None:
+        data_storage["EC"].append(ec_value)
+    if temperature_value is not None:
+        data_storage["Temperature"].append(temperature_value)
+    if humidity_value is not None:
+        data_storage["Humidity"].append(humidity_value)
+
+    stats = {
+        sensor: {
+            "mean": mean(values),
+            "median": median(values),
+            "stdev": stdev(values) if len(values) > 1 else 0
+        }
+        for sensor, values in data_storage.items()
+    }
+
+    return jsonify({
+        "tds_value": tds_value,
+        "ec_value": ec_value,
+        "temperature_value": temperature_value,
+        "humidity_value": humidity_value,
+        "stats": stats
+    })
 @app.route("/reset", methods=["POST"])
 def reset_data():
     try:
@@ -148,17 +183,17 @@ def reset_data():
         data_storage["EC"] = []
         data_storage["Temperature"] = []
         data_storage["Humidity"] = []
-
+        global data_send_count
+        data_send_count = 0
         if all(len(values) == 0 for values in data_storage.values()):
             flash("Data has been reset successfully!", "success")
         else:
             flash("Reset failed: Data could not be cleared completely.", "warning")
-
         return redirect("/")
-
     except Exception as e:
         flash(f"An error occurred while processing: {str(e)}", "error")
         return redirect("/")
+
 
 def start_network_monitoring():
     monitor_thread = threading.Thread(target=network_usage_monitor)
