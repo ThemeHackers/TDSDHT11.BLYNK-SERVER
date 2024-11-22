@@ -129,25 +129,36 @@ def index():
         }
     else:
         stats = None
+
     return render_template(
-        "index.html",
-        tds=tds_value,
-        ec=ec_value,
-        temperature=temperature_value,
-        humidity=humidity_value,
-        stats=stats,
-        calculating=calculating,
-        data_count={sensor: len(values) for sensor, values in data_storage.items()}
+    "index.html",
+    tds=tds_value,
+    ec=ec_value,
+    temperature=temperature_value,
+    humidity=humidity_value,
+    stats=stats,
+    calculating=calculating,
+    data_count={sensor: len(values) for sensor, values in data_storage.items()}
     )
 
 @app.route("/reset", methods=["POST"])
 def reset_data():
-    data_storage["TDS"] = []
-    data_storage["EC"] = []
-    data_storage["Temperature"] = []
-    data_storage["Humidity"] = []
-    flash("Data has been reset successfully!", "success")
-    return redirect("/")
+    try:
+        data_storage["TDS"] = []
+        data_storage["EC"] = []
+        data_storage["Temperature"] = []
+        data_storage["Humidity"] = []
+
+        if all(len(values) == 0 for values in data_storage.values()):
+            flash("Data has been reset successfully!", "success")
+        else:
+            flash("Reset failed: Data could not be cleared completely.", "warning")
+
+        return redirect("/")
+
+    except Exception as e:
+        flash(f"An error occurred while processing: {str(e)}", "error")
+        return redirect("/")
 
 def start_network_monitoring():
     monitor_thread = threading.Thread(target=network_usage_monitor)
