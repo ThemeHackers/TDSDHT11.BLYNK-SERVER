@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="refresh" content="4">
+    <meta http-equiv="refresh" content="3">
     <title>R'TSDC</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}">
@@ -14,7 +14,7 @@
             font-family: 'Roboto', sans-serif;
             margin: 0;
             padding: 20px;
-            background-color: #98ffff;
+            background-color: #ffffff;
             color: #34495e;
             line-height: 1.6;
         }
@@ -38,9 +38,9 @@
             display: flex;
             justify-content: center;
             align-items: center;
-           
+
             flex-direction: column;
-          
+
             margin-top: 20px;
             padding: 10px;
         }
@@ -48,21 +48,21 @@
         .alert {
             font-size: 16px;
             color: #2c3e50;
-            
+
             padding: 10px 20px;
             border-radius: 5px;
             margin: 10px 0;
             width: fit-content;
-           
+
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.08);
-           
+
             background-color: rgba(236, 240, 241, 0.8);
-            
+
         }
 
         .alert.error {
             background-color: rgba(231, 76, 60, 0.3);
-            
+
         }
 
         .alert.info {
@@ -71,7 +71,7 @@
 
         .alert.warning {
             background-color: rgba(241, 196, 15, 0.3);
-            
+
             color: #7f8c8d;
         }
 
@@ -217,7 +217,7 @@
             margin-bottom: 20px;
             text-align: center;
             font-size: 24px;
-            font-weight: 700;
+            font-weight: 600;
         }
 
         .stats-columns {
@@ -300,6 +300,65 @@
                 font-size: 12px;
             }
         }
+
+        .data-send-count {
+            background-color: #f0f8ff;
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+            margin: 20px auto;
+            font-family: 'Arial', sans-serif;
+            transition: background-color 0.3s ease-in-out;
+        }
+
+
+        .data-send-count p {
+            color: #333;
+
+            font-size: 16px;
+
+            text-align: center;
+
+            font-weight: 500;
+
+            margin: 0;
+
+        }
+
+        #dataSendCount {
+            font-size: 24px;
+
+            color: #4CAF50;
+
+            font-weight: 600;
+
+        }
+
+        .data-send-count:hover {
+            background-color: #e0f7fa;
+
+            cursor: pointer;
+        }
+
+        .left-aligned {
+            text-align: left;
+            font-size: 16px;
+            color: #333;
+            margin: 10px 0;
+        }
+
+        .graph-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+        }
+
+        canvas {
+            max-width: 100%;
+            height: auto;
+            margin: 10px;
+        }
     </style>
 </head>
 
@@ -311,14 +370,21 @@
             <i class="fas fa-tint fa-2x" style="color: #3498db; margin-bottom: 15px;"></i>
             <h3>TDS</h3>
             <p>Value: {{ tds }}</p>
-            <p>TDS stands for Total Dissolved Solids (minerals, salts, metals, etc.) in water. It is usually measured in
+            <p class="left-aligned" style="font-size: 16px;">TDS stands for Total Dissolved Solids (minerals, salts,
+                metals, etc.) in water. It is usually measured in
                 milligrams per liter (mg/L) or parts per million (ppm).</p>
+
         </div>
         <div class="card">
             <i class="fas fa-bolt fa-2x" style="color: #9b59b6; margin-bottom: 15px;"></i>
             <h3>EC (Electrical Conductivity)</h3>
             <p>Value: {{ ec }}</p>
-            <p>Electrical Conductivity (EC) is a measure of a material's ability to conduct an electric current.</p>
+            <p class="left-aligned" style="font-size: 16px;">
+                EC (Electrical Conductivity) is a measure of a substance's ability to conduct electricity, which is
+                mainly determined by the presence of dissolved ions in a solution.
+                Higher EC values indicate higher concentrations of dissolved substances, while lower EC values indicate
+                purer water with fewer ions.
+            </p>
         </div>
     </div>
 
@@ -327,7 +393,8 @@
             <i class="fas fa-thermometer-half fa-2x" style="color: #1abc9c; margin-bottom: 15px;"></i>
             <h3>Temperature</h3>
             <p>Value: {{ temperature }}</p>
-            <p>Temperature is a fundamental physical quantity that expresses the degree of hotness or coldness of a
+            <p class="left-aligned" style="font-size: 16px;">Temperature is a fundamental physical quantity that
+                expresses the degree of hotness or coldness of a
                 substance or system. Temperature plays a key role in many physical, chemical, and biological processes
                 and is usually expressed as the ambient temperature or as a reference to room temperature.</p>
         </div>
@@ -335,12 +402,15 @@
             <i class="fas fa-cloud-rain fa-2x" style="color: #e74c3c; margin-bottom: 15px;"></i>
             <h3>Humidity</h3>
             <p>Value: {{ humidity }}</p>
-            <p>Humidity refers to the amount of water vapor present in the air. It is an important factor in weather,
+            <p class="left-aligned" style="font-size: 16px;">Humidity refers to the amount of water vapor present in the
+                air. It is an important factor in weather,
                 climate, and human comfort. There are different ways to express and measure humidity, with the most
                 common being absolute humidity, relative humidity, and specific humidity.</p>
         </div>
     </div>
-
+    <div class="data-send-count">
+        <p>Amount of data received: <span id="dataSendCount">{{ data_send_count }}</span> times</p>
+    </div>
     <div class="stats-container">
         <h3>Statistics</h3>
         {% if stats %}
@@ -377,11 +447,135 @@
 
     <div class="graph-container">
         <h3>Live Data Graphs</h3>
-        <canvas id="graphTDS" width="400" height="200"></canvas>
-        <canvas id="graphEC" width="400" height="200"></canvas>
-        <canvas id="graphTemperature" width="400" height="200"></canvas>
-        <canvas id="graphHumidity" width="400" height="200"></canvas>
+        <canvas id="graphMeanTDS" width="400" height="200"></canvas>
+        <canvas id="graphMeanEC" width="400" height="200"></canvas>
+        <canvas id="graphMeanTemperature" width="400" height="200"></canvas>
+        <canvas id="graphMeanHumidity" width="400" height="200"></canvas>
     </div>
+            <script>
+        var socket = io.connect('http://' + document.domain + ':' + location.port);
+
+        var ctxMeanTDS = document.getElementById('graphMeanTDS').getContext('2d');
+        var graphMeanTDS = new Chart(ctxMeanTDS, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Mean TDS',
+                    data: [],
+                    borderColor: 'rgba(52, 152, 219, 1)',
+                    backgroundColor: 'rgba(52, 152, 219, 0.2)',
+                    fill: true
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        var ctxMeanEC = document.getElementById('graphMeanEC').getContext('2d');
+        var graphMeanEC = new Chart(ctxMeanEC, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Mean EC',
+                    data: [],
+                    borderColor: 'rgba(155, 89, 182, 1)',
+                    backgroundColor: 'rgba(155, 89, 182, 0.2)',
+                    fill: true
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        var ctxMeanTemperature = document.getElementById('graphMeanTemperature').getContext('2d');
+        var graphMeanTemperature = new Chart(ctxMeanTemperature, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Mean Temperature',
+                    data: [],
+                    borderColor: 'rgba(26, 188, 156, 1)',
+                    backgroundColor: 'rgba(26, 188, 156, 0.2)',
+                    fill: true
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        var ctxMeanHumidity = document.getElementById('graphMeanHumidity').getContext('2d');
+        var graphMeanHumidity = new Chart(ctxMeanHumidity, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Mean Humidity',
+                    data: [],
+                    borderColor: 'rgba(231, 76, 60, 1)',
+                    backgroundColor: 'rgba(231, 76, 60, 0.2)',
+                    fill: true
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        fetch("/update_data")
+            .then(response => response.json())
+            .then(data => {
+                console.log("TDS Value: " + data.tds_value);
+                console.log("EC Value: " + data.ec_value);
+                console.log("Temperature Value: " + data.temperature_value);
+                console.log("Humidity Value: " + data.humidity_value);
+                console.log("Statistics: ", data.stats);
+
+                updateGraph(graphMeanTDS, data.stats.TDS);
+                updateGraph(graphMeanEC, data.stats.EC);
+                updateGraph(graphMeanTemperature, data.stats.Temperature);
+                updateGraph(graphMeanHumidity, data.stats.Humidity);
+                console.log(Chart);
+            })
+            .catch(error => console.error("Error fetching data: ", error));
+
+        function updateGraph(chart, stats) {
+            const newLabel = new Date().toLocaleTimeString();
+            chart.data.labels.push(newLabel);  
+            chart.data.datasets[0].data.push(stats.mean);  
+
+           
+            if (chart.data.labels.length > 10) {
+                chart.data.labels.shift();
+                chart.data.datasets[0].data.shift();
+            }
+
+            chart.update(); 
+        }
+
+
+    </script>
     <form action="{{ url_for('reset_data') }}" method="post" style="margin-top: 20px;">
         <button type="submit" class="reset-button">Reset Data</button>
     </form>
@@ -401,117 +595,7 @@
                 style="color: #ffffff; text-decoration: none;">GitHub - ThemeHackers</a>
         </p>
     </footer>
-    <script>
-        var socket = io.connect('http://' + document.domain + ':' + location.port);
-    
-        var ctxTDS = document.getElementById('graphTDS').getContext('2d');
-        var graphTDS = new Chart(ctxTDS, {
-            type: 'line',
-            data: {
-                labels: [], 
-                datasets: [{
-                    label: 'TDS',
-                    data: [], 
-                    borderColor: 'rgba(52, 152, 219, 1)',
-                    backgroundColor: 'rgba(52, 152, 219, 0.2)',
-                    fill: true
-                }]
-            },
-            options: {
-                scales: {
-                    y: {
-                        beginAtZero: true
-                    }
-                }
-            }
-        });
-    
-        var ctxEC = document.getElementById('graphEC').getContext('2d');
-        var graphEC = new Chart(ctxEC, {
-            type: 'line',
-            data: {
-                labels: [], 
-                datasets: [{
-                    label: 'EC',
-                    data: [], 
-                    borderColor: 'rgba(155, 89, 182, 1)',
-                    backgroundColor: 'rgba(155, 89, 182, 0.2)',
-                    fill: true
-                }]
-            },
-            options: {
-                scales: {
-                    y: {
-                        beginAtZero: true
-                    }
-                }
-            }
-        });
-    
-        var ctxTemperature = document.getElementById('graphTemperature').getContext('2d');
-        var graphTemperature = new Chart(ctxTemperature, {
-            type: 'line',
-            data: {
-                labels: [], 
-                datasets: [{
-                    label: 'Temperature',
-                    data: [], 
-                    borderColor: 'rgba(26, 188, 156, 1)',
-                    backgroundColor: 'rgba(26, 188, 156, 0.2)',
-                    fill: true
-                }]
-            },
-            options: {
-                scales: {
-                    y: {
-                        beginAtZero: true
-                    }
-                }
-            }
-        });
-    
-        var ctxHumidity = document.getElementById('graphHumidity').getContext('2d');
-        var graphHumidity = new Chart(ctxHumidity, {
-            type: 'line',
-            data: {
-                labels: [], 
-                datasets: [{
-                    label: 'Humidity',
-                    data: [],
-                    borderColor: 'rgba(231, 76, 60, 1)',
-                    backgroundColor: 'rgba(231, 76, 60, 0.2)',
-                    fill: true
-                }]
-            },
-            options: {
-                scales: {
-                    y: {
-                        beginAtZero: true
-                    }
-                }
-            }
-        });
-    
-        socket.on('update_data', function (data) {
-            graphTDS.data.labels = data.timestamps;
-            graphTDS.data.datasets[0].data = data.tds_readings;
-            graphTDS.update();
-    
-            graphEC.data.labels = data.timestamps;
-            graphEC.data.datasets[0].data = data.ec_readings;
-            graphEC.update();
-    
 
-            graphTemperature.data.labels = data.timestamps;
-            graphTemperature.data.datasets[0].data = data.temperature_readings;
-            graphTemperature.update();
-    
-            
-            graphHumidity.data.labels = data.timestamps;
-            graphHumidity.data.datasets[0].data = data.humidity_readings;
-            graphHumidity.update();
-        });
-    </script>
 </body>
 
 </html>
