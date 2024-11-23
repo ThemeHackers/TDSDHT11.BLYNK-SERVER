@@ -5,10 +5,9 @@ import base64
 import logging
 import time
 from statistics import mean, median, stdev
-from colorama import Fore, Style, init
 import threading
 from flask_socketio import SocketIO, emit
-init(autoreset=True)
+
 app = Flask(__name__)
 app.secret_key = os.urandom(24).hex()  
 
@@ -58,7 +57,7 @@ def network_usage_monitor():
             time.sleep(5)
         except Exception as e:
             with log_lock:
-                print(Fore.RED + f"Error in network usage monitor: {e}\n")
+                print(f"Error in network usage monitor: {e}\n")
             break
 
 def measure_network_usage(*urls):
@@ -73,7 +72,7 @@ def measure_network_usage(*urls):
             response_size = len(response.content)
             total_response_size += response_size
         except requests.exceptions.RequestException as e:
-            print(Fore.RED + f"Error fetching URL: {url}, Error: {e}\n")
+            print(f"Error fetching URL: {url}, Error: {e}\n")
 
     total_size = total_request_size + total_response_size
     total_size_mb = total_size / (1024 * 1024) 
