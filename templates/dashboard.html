@@ -1,259 +1,587 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
-    <title>Data Center Dashboard</title>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
-    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <meta http-equiv="refresh" content="4">
+    <title>R-TSDC</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}">
-    <!-- FontAwesome for status icons -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <style>
         body {
             font-family: 'Roboto', sans-serif;
-            background-color: #f4f7f6;
-        }
-        .container {
-            margin-top: 30px;
-        }
-        .header {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        h1 {
-            font-size: 2.5rem;
-            font-weight: bold;
-            margin-bottom: 10px;
-        }
-        .card {
-            border-radius: 12px;
-            box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1);
-            background-color: #fff;
+            margin: 0;
             padding: 20px;
-            transition: transform 0.2s ease-in-out;
+            background-color: #b2ebf2;
+            color: #34495e;
+            line-height: 1.6;
         }
-        .card:hover {
-            transform: translateY(-10px);
+
+        .animated-icon {
+            display: inline-block;
+            animation: bounce 1s infinite;
+            margin-bottom: 15px;
         }
-        .card-title {
-            font-size: 20px;
-            font-weight: 500;
-            color: #007bff;
+
+        .alert.success {
+            color: #219c31;
+            background-color: #ffffff;
+            padding: 10px;
+            margin-top: 20px;
+            border-radius: 5px;
+            justify-content: center
+        }
+
+        .flash-container {
             display: flex;
+            justify-content: center;
             align-items: center;
-        }
-        .card-title i {
-            margin-left: 10px;
-            font-size: 1.2rem;
-        }
-        .text-success {
-            color: green;
-        }
-        .text-danger {
-            color: red;
-        }
-        .stat-value {
-            font-size: 24px;
-            font-weight: 600;
-            color: #333;
-        }
-        .graph-container {
-            margin-top: 40px;
-        }
-        .row {
-            margin-bottom: 20px;
-        }
-        .col-md-3, .col-md-6 {
+
+            flex-direction: column;
+
+            margin-top: 20px;
             padding: 10px;
         }
-        #tds-graph, #temperature-graph, #humidity-graph, #ec-graph {
-            height: 300px;
+
+        .alert {
+            font-size: 16px;
+            color: #2c3e50;
+
+            padding: 10px 20px;
+            border-radius: 5px;
+            margin: 10px 0;
+            width: fit-content;
+
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.08);
+
+            background-color: rgba(236, 240, 241, 0.8);
+
         }
-        @media (max-width: 767px) {
-            .col-md-3, .col-md-6 {
-                flex: 0 0 100%;
-                max-width: 100%;
+
+        .alert.error {
+            background-color: rgba(231, 76, 60, 0.3);
+
+        }
+
+        .alert.info {
+            background-color: rgba(52, 152, 219, 0.3);
+        }
+
+        .alert.warning {
+            background-color: rgba(241, 196, 15, 0.3);
+
+            color: #7f8c8d;
+        }
+
+
+        .alert.error {
+            background-color: #e74c3c;
+        }
+
+        .alert.info {
+            background-color: #3498db;
+        }
+
+        .alert.warning {
+            background-color: #f1c40f;
+            color: #2c3e50;
+        }
+
+        @keyframes bounce {
+            0% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-10px);
+            }
+
+            100% {
+                transform: translateY(0);
+            }
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            font-size: 36px;
+            margin-bottom: 20px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-evenly;
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .card {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+            width: 45%;
+            text-align: center;
+            transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+            font-size: 1.2em;
+            margin: 15px 0;
+            overflow: hidden;
+            animation: fadeInUp 0.8s ease-in-out;
+        }
+
+        .card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .card h3 {
+            color: #2980b9;
+            font-size: 22px;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+
+        .card p {
+            color: #7f8c8d;
+            font-size: 1.1em;
+            margin: 10px 0;
+        }
+
+        .reset-button {
+            background-color: #3498db;
+            color: white;
+            padding: 14px 30px;
+            border: none;
+            border-radius: 8px;
+            width: 100%;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+                box-shadow: 0 0 5px rgba(52, 152, 219, 0.8);
+
+            }
+
+            50% {
+                transform: scale(1.0);
+
+                box-shadow: 0 0 20px rgba(52, 152, 219, 0.8);
+
+            }
+
+            100% {
+                transform: scale(1);
+                box-shadow: 0 0 5px rgba(52, 152, 219, 0.8);
+
+            }
+        }
+
+        .reset-button:hover {
+            background-color: #2ecc71;
+        }
+
+
+        .stats-container {
+            margin-top: 50px;
+            padding: 30px;
+            background-color: #fff;
+            border-radius: 15px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.1);
+            width: 90%;
+            max-width: 1200px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .stats-container h3 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .stats-columns {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+        }
+
+        .stat-item {
+            background-color: #ecf0f1;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+            width: 220px;
+            text-align: center;
+            transition: transform 0.3s ease-in-out;
+        }
+
+        .stat-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .stat-item h4 {
+            color: #3498db;
+            font-size: 18px;
+            margin-bottom: 15px;
+        }
+
+        .stat-item p {
+            color: #34495e;
+            font-size: 1.1em;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 50px;
+            padding: 20px;
+            background-color: #34495e;
+            color: white;
+        }
+
+        footer p {
+            margin: 0;
+            font-size: 14px;
+        }
+
+        @media (max-width: 768px) {
+            .card {
+                width: 100%;
+                font-size: 1.1em;
+            }
+
+            .stat-item {
+                width: 45%;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .card {
+                font-size: 1em;
+            }
+
+            .stat-item {
+                width: 100%;
+            }
+
+            .stats-container h3 {
+                font-size: 20px;
+            }
+
+            footer p {
+                font-size: 12px;
+            }
+        }
+
+
+        .data-send-count {
+            background-color: #f4f7f6;
+
+            padding: 20px;
+            border-radius: 8px;
+
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+
+            max-width: px;
+
+            margin: 20px auto;
+
+            font-family: 'Arial', sans-serif;
+
+        }
+
+        .data-send-count p {
+            font-size: 18px;
+            color: #333;
+            margin: 0;
+            text-align: center;
+        }
+
+        .count {
+            font-weight: bold;
+            font-size: 24px;
+            color: #3a8dff;
+            transition: color 0.3s ease;
+        }
+
+        .count:hover {
+            color: #1f6dd8;
+
+            cursor: pointer;
+
+        }
+
+
+        @media (max-width: 600px) {
+            .data-send-count {
+                padding: 15px;
+                width: 90%;
+
+            }
+
+            .data-send-count p {
+                font-size: 16px;
+            }
+
+            .count {
+                font-size: 22px;
+            }
+        }
+
+
+        #dataSendCount {
+            font-size: 24px;
+
+            color: #4CAF50;
+
+            font-weight: 600;
+
+        }
+
+        .data-send-count:hover {
+            background-color: #e0f7fa;
+
+            cursor: pointer;
+        }
+
+        .left-aligned {
+            text-align: left;
+            font-size: 16px;
+            color: #333;
+            margin: 10px 0;
+        }
+
+        .graph-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+
+        }
+
+        canvas {
+            max-width: 100%;
+            height: auto;
+            margin: 10px;
+        }
+
+        .card-Statistics {
+            max-width: 100%;
+            height: auto;
+            margin: 0 auto;
+            display: block;
+        }
+
+        .card-Statistics {
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: 15px;
+            text-align: center;
+            width: 95%;
+        }
+
+        .card-Statistics h2 {
+            font-size: 16px;
+        }
+
+        .card-Statistics p {
+            font-size: 12px;
+        }
+
+        .card-Statistics-mean {
+            font-family: 'Arial', sans-serif;
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #333;
+            text-align: center;
+            background-color: #ffffff;
+            padding: 20px 30px;
+            margin: 20px auto;
+            max-width: 600px;
+            border-radius: 10px;
+            border: 1px solid #e0e0e0;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card-Statistics-mean:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+        }
+
+        .status-message {
+            font-size: 16px;
+            font-weight: 500;
+            color: #555;
+            background-color: #f7f7f7;
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-message .loading-icon {
+            font-size: 24px;
+            animation: rotate 1s linear infinite;
+        }
+
+        @keyframes rotate {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
             }
         }
     </style>
 </head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>Real-time Data Center Dashboard</h1>
-            <p>IP Address: {{ ip_address }}</p>
-        </div>
-        <!-- Statistics Section -->
-        <div class="row">
-            <div class="col-md-3">
-                <div class="card">
-                    <h5 class="card-title">
-                        TDS Stats
-                        <i id="tds-status" class="fas fa-circle"></i> <!-- Status icon -->
-                    </h5>
-                    <p class="stat-value" id="tds-mean">{{ tds_stats['mean'] }}</p>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card">
-                    <h5 class="card-title">
-                        Temperature Stats
-                        <i id="temp-status" class="fas fa-circle"></i>
-                    </h5>
-                    <p class="stat-value" id="temp-mean">{{ temperature_stats['mean'] }}</p>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card">
-                    <h5 class="card-title">
-                        Humidity Stats
-                        <i id="humidity-status" class="fas fa-circle"></i>
-                    </h5>
-                    <p class="stat-value" id="humidity-mean">{{ humidity_stats['mean'] }}</p>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card">
-                    <h5 class="card-title">
-                        EC Stats
-                        <i id="ec-status" class="fas fa-circle"></i>
-                    </h5>
-                    <p class="stat-value" id="ec-mean">{{ ec_stats['mean'] }}</p>
-                </div>
-            </div>
-        </div>
 
-        <!-- Graphs Section -->
-        <div class="graph-container">
-            <div class="row">
-                <div class="col-md-6">
-                    <div id="tds-graph"></div>
-                </div>
-                <div class="col-md-6">
-                    <div id="temperature-graph"></div>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-md-6">
-                    <div id="humidity-graph"></div>
-                </div>
-                <div class="col-md-6">
-                    <div id="ec-graph"></div>
-                </div>
-            </div>
+<body>
+    <h1 class="card-Statistics">📊Real-Time Statistics Data Center</h1>
+
+    <div class="container">
+        <div class="card">
+            <i class="fas fa-tint fa-2x" style="color: #3498db; margin-bottom: 15px;"></i>
+            <h3>TDS (Total dissolved solids)</h3>
+            <p>Value: {{ tds }}</p>
+            <p class="left-aligned" style="font-size: 16px;">Total dissolved solids (TDS) 
+                is a measure of the total amount of solids, inorganic 
+                and organic matter dissolved in water. The TDS of any 
+                water is expressed in milligrams per liter (mg/L) or 
+                in parts per million (ppm). Definition of TDS Applications
+                of TDS in water quality studies for streams, rivers 
+                and lakes. Although TDS is not generally considered a 
+                measure of pollution, i.e. not considered to be associated 
+                with health effects, it is used as an indicator of the quality 
+                characteristics of drinking water and as an aggregate indicator 
+                of the presence of a broad range of chemical contaminants.</p>
+
+        </div>
+        <div class="card">
+            <i class="fas fa-bolt fa-2x" style="color: #9b59b6; margin-bottom: 15px;"></i>
+            <h3>EC (Electrical Conductivity)</h3>
+            <p>Value: {{ ec }}</p>
+            <p class="left-aligned" style="font-size: 16px;">
+                EC (Electrical Conductivity) is a measure of a substance's ability to conduct electricity, which is
+                mainly determined by the presence of dissolved ions in a solution.
+                Higher EC values indicate higher concentrations of dissolved substances, while lower EC values indicate
+                purer water with fewer ions.
+            </p>
         </div>
     </div>
 
-    <script>
-        var timestamps = {{ timestamps | tojson }};
-        var tdsReadings = {{ tds_readings | tojson }};
-        var temperatureReadings = {{ temperature_readings | tojson }};
-        var humidityReadings = {{ humidity_readings | tojson }};
-        var ecReadings = {{ ec_readings | tojson }};
+    <div class="container">
+        <div class="card">
+            <i class="fas fa-thermometer-half fa-2x" style="color: #1abc9c; margin-bottom: 15px;"></i>
+            <h3>Temperature</h3>
+            <p>Value: {{ temperature }}</p>
+            <p class="left-aligned" style="font-size: 16px;">Temperature is a fundamental physical quantity that
+                expresses the degree of hotness or coldness of a
+                substance or system. Temperature plays a key role in many physical, chemical, and biological processes
+                and is usually expressed as the ambient temperature or as a reference to room temperature.</p>
+        </div>
+        <div class="card">
+            <i class="fas fa-cloud-rain fa-2x" style="color: #e74c3c; margin-bottom: 15px;"></i>
+            <h3>Humidity</h3>
+            <p>Value: {{ humidity }}</p>
+            <p class="left-aligned" style="font-size: 16px;">Humidity refers to the amount of water vapor present in the
+                air. It is an important factor in weather,
+                climate, and human comfort. There are different ways to express and measure humidity, with the most
+                common being absolute humidity, relative humidity, and specific humidity.</p>
+        </div>
+    </div>
+    <div class="data-send-count">
+        <p>Amount of data received: <span id="dataSendCount">{{ data_send_count }}</span> times</p>
+    </div>
+    <div class="stats-container">
+        <h3>📊Statistics</h3>
+        {% if stats %}
+        <div class="stats-columns">
+            <div class="stat-item">
+                <h4>TDS</h4>
+                <p>TDS Mean: {{ stats.TDS.mean | round(2) }}</p>
+                <p>Median: {{ stats.TDS.median }}</p>
+                <p>Standard Deviation: {{ stats.TDS.stdev | round(2)}}</p>
+            </div>
+            <div class="stat-item">
+                <h4>EC</h4>
+                <p>Mean: {{ stats.EC.mean }}</p>
+                <p>EC Mean: {{ stats.EC.mean | round(2) }}</p>
+                <p>Standard Deviation: {{ stats.EC.stdev | round(2)}}</p>
+            </div>
+            <div class="stat-item">
+                <h4>Temperature</h4>
+                <p>Mean: {{ stats.Temperature.mean }}</p>
+                <p>Temperature Mean: {{ stats.Temperature.mean | round(2) }}</p>
+                <p>Standard Deviation: {{ stats.Temperature.stdev | round(2) }}</p>
+            </div>
+            <div class="stat-item">
+                <h4>Humidity</h4>
+                <p>Mean: {{ stats.Humidity.mean }}</p>
+                <p>Humidity Mean: {{ stats.Humidity.mean | round(2) }}</p>
+                <p>Standard Deviation: {{ stats.Humidity.stdev | round(2) }}</p>
+            </div>
+        </div>
+        {% else %}
+        <p class="status-message">
+            <span class="loading-icon">💎</span> Statistics are still being calculated..........
+          </p>
+        {% endif %}
+    </div>
 
-        // TDS Graph
-        var tdsTrace = {
-            x: timestamps,
-            y: tdsReadings,
-            mode: 'lines+markers',
-            name: 'TDS',
-            line: {color: 'blue'}
-        };
-        var tdsLayout = {
-            title: 'TDS Over Time',
-            xaxis: {title: 'Time'},
-            yaxis: {title: 'TDS Value'}
-        };
-        Plotly.newPlot('tds-graph', [tdsTrace], tdsLayout);
-
-        // Temperature Graph
-        var temperatureTrace = {
-            x: timestamps,
-            y: temperatureReadings,
-            mode: 'lines+markers',
-            name: 'Temperature',
-            line: {color: 'red'}
-        };
-        var temperatureLayout = {
-            title: 'Temperature Over Time',
-            xaxis: {title: 'Time'},
-            yaxis: {title: 'Temperature (°C)'}
-        };
-        Plotly.newPlot('temperature-graph', [temperatureTrace], temperatureLayout);
-
-        // Humidity Graph
-        var humidityTrace = {
-            x: timestamps,
-            y: humidityReadings,
-            mode: 'lines+markers',
-            name: 'Humidity',
-            line: {color: 'green'}
-        };
-        var humidityLayout = {
-            title: 'Humidity Over Time',
-            xaxis: {title: 'Time'},
-            yaxis: {title: 'Humidity (%)'}
-        };
-        Plotly.newPlot('humidity-graph', [humidityTrace], humidityLayout);
-
-        // EC Graph
-        var ecTrace = {
-            x: timestamps,
-            y: ecReadings,
-            mode: 'lines+markers',
-            name: 'EC',
-            line: {color: 'orange'}
-        };
-        var ecLayout = {
-            title: 'EC Over Time',
-            xaxis: {title: 'Time'},
-            yaxis: {title: 'EC Value'}
-        };
-        Plotly.newPlot('ec-graph', [ecTrace], ecLayout);
-
-        // Setup socket.io connection
-        var socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port);
-        // Listen for data updates
-        socket.on('update_data', function(data) {
-            // Debug log
-            console.log("Received data:", data);
-            // Update the stats values
-            document.getElementById('tds-mean').innerText = data.tds_stats.mean;
-            document.getElementById('temp-mean').innerText = data.temperature_stats.mean;
-            document.getElementById('humidity-mean').innerText = data.humidity_stats.mean;
-            document.getElementById('ec-mean').innerText = data.ec_stats.mean;
-
-            // Update the status icon based on data availability
-            updateStatusIcon(data.tds_status, 'tds-status');
-            updateStatusIcon(data.temperature_status, 'temp-status');
-            updateStatusIcon(data.humidity_status, 'humidity-status');
-            updateStatusIcon(data.ec_status, 'ec-status');
-
-            // Update the graphs dynamically
-            Plotly.extendTraces('tds-graph', {x: [[data.timestamp]], y: [[data.tds]]}, [0]);
-            Plotly.extendTraces('temperature-graph', {x: [[data.timestamp]], y: [[data.temperature]]}, [0]);
-            Plotly.extendTraces('humidity-graph', {x: [[data.timestamp]], y: [[data.humidity]]}, [0]);
-            Plotly.extendTraces('ec-graph', {x: [[data.timestamp]], y: [[data.ec]]}, [0]);
-        });
-
-        // Function to update status icon
-        function updateStatusIcon(status, elementId) {
-            var icon = document.getElementById(elementId);
-            if (status === 'online') {
-                icon.classList.add('text-success');
-                icon.classList.remove('text-danger');
-                icon.classList.add('fas', 'fa-check-circle');
-            } else {
-                icon.classList.add('text-danger');
-                icon.classList.remove('text-success');
-                icon.classList.add('fas', 'fa-times-circle');
-            }
-        }
     </script>
+    <form action="{{ url_for('reset_data') }}" method="post" style="margin-top: 20px;">
+        <button type="submit" class="reset-button">Reset Data</button>
+    </form>
+    <div class="flash-container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert {{ category }}">{{ message }}</div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+    </div>
+
+    <footer>
+        <p style="font-family: Arial, sans-serif; color: #ffffff; font-size: 14px; text-align: center;">
+            &copy; 💎Real-Time Statistics Data Center 2024
+            | <a href="https://github.com/ThemeHackers" target="_blank"
+                style="color: #ffffff; text-decoration: none;">GitHub - ThemeHackers</a>
+        </p>
+    </footer>
 
 </body>
+
 </html>
