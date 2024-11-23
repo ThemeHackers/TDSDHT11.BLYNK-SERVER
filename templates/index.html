@@ -5,16 +5,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="refresh" content="3">
-    <title>R'TSDC</title>
+    <title>R-TSDC</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <style>
         body {
             font-family: 'Roboto', sans-serif;
             margin: 0;
             padding: 20px;
-            background-color: #ffffff;
+            background-color: #b2ebf2;
             color: #34495e;
             line-height: 1.6;
         }
@@ -253,12 +254,6 @@
             font-size: 1.1em;
         }
 
-        .graph-container {
-            margin-top: 50px;
-            text-align: center;
-            width: 100%;
-        }
-
         footer {
             text-align: center;
             margin-top: 50px;
@@ -352,6 +347,7 @@
             display: flex;
             flex-wrap: wrap;
             justify-content: space-between;
+
         }
 
         canvas {
@@ -416,7 +412,7 @@
         {% if stats %}
         <div class="stats-columns">
             <div class="stat-item">
-                <h4>TDS</h4>
+                <h4>TDS (Total dissolved solids)</h4>
                 <p>TDS Mean: {{ stats.TDS.mean | round(2) }}</p>
                 <p>Median: {{ stats.TDS.median }}</p>
                 <p>Standard Deviation: {{ stats.TDS.stdev | round(2)}}</p>
@@ -444,137 +440,74 @@
         <p>Statistics are still being calculated or not available.</p>
         {% endif %}
     </div>
-
-    <div class="graph-container">
-        <h3>Live Data Graphs</h3>
-        <canvas id="graphMeanTDS" width="400" height="200"></canvas>
-        <canvas id="graphMeanEC" width="400" height="200"></canvas>
-        <canvas id="graphMeanTemperature" width="400" height="200"></canvas>
-        <canvas id="graphMeanHumidity" width="400" height="200"></canvas>
+    <h1>Sensor Data Dashboard</h1>
+    <div>
+        <canvas id="sensorChart" width="400" height="200"></canvas>
     </div>
-            <script>
-        var socket = io.connect('http://' + document.domain + ':' + location.port);
 
-        var ctxMeanTDS = document.getElementById('graphMeanTDS').getContext('2d');
-        var graphMeanTDS = new Chart(ctxMeanTDS, {
-            type: 'line',
-            data: {
-                labels: [],
-                datasets: [{
-                    label: 'Mean TDS',
-                    data: [],
-                    borderColor: 'rgba(52, 152, 219, 1)',
-                    backgroundColor: 'rgba(52, 152, 219, 0.2)',
-                    fill: true
-                }]
-            },
-            options: {
-                scales: {
-                    y: {
-                        beginAtZero: true
+    <script>
+        async function loadChartData() {
+            const response = await fetch('/get_graph_data');
+            const data = await response.json();
+            
+            const ctx = document.getElementById('sensorChart').getContext('2d');
+            const chart = new Chart(ctx, {
+                type: 'line', 
+                data: {
+                    labels: data.labels,  
+                    datasets: [
+                        {
+                            label: 'TDS',
+                            data: data.TDS,
+                            borderColor: 'blue',
+                            fill: false
+                        },
+                        {
+                            label: 'EC',
+                            data: data.EC,
+                            borderColor: 'green',
+                            fill: false
+                        },
+                        {
+                            label: 'Temperature',
+                            data: data.Temperature,
+                            borderColor: 'red',
+                            fill: false
+                        },
+                        {
+                            label: 'Humidity',
+                            data: data.Humidity,
+                            borderColor: 'purple',
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Data Points'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Values'
+                            }
+                        }
                     }
                 }
-            }
-        });
-
-        var ctxMeanEC = document.getElementById('graphMeanEC').getContext('2d');
-        var graphMeanEC = new Chart(ctxMeanEC, {
-            type: 'line',
-            data: {
-                labels: [],
-                datasets: [{
-                    label: 'Mean EC',
-                    data: [],
-                    borderColor: 'rgba(155, 89, 182, 1)',
-                    backgroundColor: 'rgba(155, 89, 182, 0.2)',
-                    fill: true
-                }]
-            },
-            options: {
-                scales: {
-                    y: {
-                        beginAtZero: true
-                    }
-                }
-            }
-        });
-
-        var ctxMeanTemperature = document.getElementById('graphMeanTemperature').getContext('2d');
-        var graphMeanTemperature = new Chart(ctxMeanTemperature, {
-            type: 'line',
-            data: {
-                labels: [],
-                datasets: [{
-                    label: 'Mean Temperature',
-                    data: [],
-                    borderColor: 'rgba(26, 188, 156, 1)',
-                    backgroundColor: 'rgba(26, 188, 156, 0.2)',
-                    fill: true
-                }]
-            },
-            options: {
-                scales: {
-                    y: {
-                        beginAtZero: true
-                    }
-                }
-            }
-        });
-
-        var ctxMeanHumidity = document.getElementById('graphMeanHumidity').getContext('2d');
-        var graphMeanHumidity = new Chart(ctxMeanHumidity, {
-            type: 'line',
-            data: {
-                labels: [],
-                datasets: [{
-                    label: 'Mean Humidity',
-                    data: [],
-                    borderColor: 'rgba(231, 76, 60, 1)',
-                    backgroundColor: 'rgba(231, 76, 60, 0.2)',
-                    fill: true
-                }]
-            },
-            options: {
-                scales: {
-                    y: {
-                        beginAtZero: true
-                    }
-                }
-            }
-        });
-
-        fetch("/update_data")
-            .then(response => response.json())
-            .then(data => {
-                console.log("TDS Value: " + data.tds_value);
-                console.log("EC Value: " + data.ec_value);
-                console.log("Temperature Value: " + data.temperature_value);
-                console.log("Humidity Value: " + data.humidity_value);
-                console.log("Statistics: ", data.stats);
-
-                updateGraph(graphMeanTDS, data.stats.TDS);
-                updateGraph(graphMeanEC, data.stats.EC);
-                updateGraph(graphMeanTemperature, data.stats.Temperature);
-                updateGraph(graphMeanHumidity, data.stats.Humidity);
-                console.log(Chart);
-            })
-            .catch(error => console.error("Error fetching data: ", error));
-
-        function updateGraph(chart, stats) {
-            const newLabel = new Date().toLocaleTimeString();
-            chart.data.labels.push(newLabel);  
-            chart.data.datasets[0].data.push(stats.mean);  
-
-           
-            if (chart.data.labels.length > 10) {
-                chart.data.labels.shift();
-                chart.data.datasets[0].data.shift();
-            }
-
-            chart.update(); 
+            });
         }
-
-
+        window.onload = loadChartData;
     </script>
     <form action="{{ url_for('reset_data') }}" method="post" style="margin-top: 20px;">
         <button type="submit" class="reset-button">Reset Data</button>
@@ -588,6 +521,7 @@
         {% endif %}
         {% endwith %}
     </div>
+
     <footer>
         <p style="font-family: Arial, sans-serif; color: #ffffff; font-size: 14px; text-align: center;">
             &copy; Real-Time Statistics Data Center 2024
