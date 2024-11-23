@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="refresh" content="5">
+    <meta http-equiv="refresh" content="4">
     <title>R-TSDC</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}">
@@ -522,7 +522,10 @@
         </div>
     </div>
     <div class="data-send-count">
+        <p>....................................................................................................................................................................................................................................................................</p>
         <p>Amount of data received: <span id="dataSendCount">{{ data_send_count }}</span> times</p>
+        <p>....................................................................................................................................................................................................................................................................</p>
+        <p>This statistical calculation is performed on 200 data sets, and each calculation must be reset to 0 to minimize calculation errors caused by the source code.</p>
     </div>
     <div class="stats-container">
         <h3>📊Statistics</h3>
