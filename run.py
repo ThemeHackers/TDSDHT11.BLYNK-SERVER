@@ -7,7 +7,7 @@ import time
 from statistics import mean, median, stdev
 from colorama import Fore, Style, init
 import threading
-
+from flask_socketio import SocketIO, emit
 init(autoreset=True)
 app = Flask(__name__)
 app.secret_key = os.urandom(24).hex()  
@@ -144,38 +144,16 @@ def index():
         data_send_count=data_send_count  
     )
     
-@app.route("/update_data", methods=["GET"])
-def update_data():
-    tds_value = fetch_data(tds_url, "TDS")
-    ec_value = fetch_data(ec_url, "EC")
-    temperature_value = fetch_data(temperature_url, "Temperature")
-    humidity_value = fetch_data(humidity_url, "Humidity")
-
-    if tds_value is not None:
-        data_storage["TDS"].append(tds_value)
-    if ec_value is not None:
-        data_storage["EC"].append(ec_value)
-    if temperature_value is not None:
-        data_storage["Temperature"].append(temperature_value)
-    if humidity_value is not None:
-        data_storage["Humidity"].append(humidity_value)
-
-    stats = {
-        sensor: {
-            "mean": mean(values),
-            "median": median(values),
-            "stdev": stdev(values) if len(values) > 1 else 0
-        }
-        for sensor, values in data_storage.items()
-    }
-
+@app.route("/get_graph_data", methods=["GET"])
+def get_graph_data():
     return jsonify({
-        "tds_value": tds_value,
-        "ec_value": ec_value,
-        "temperature_value": temperature_value,
-        "humidity_value": humidity_value,
-        "stats": stats
+        "labels": list(range(len(data_storage["TDS"]))),  # X-axis labels (e.g., data points)
+        "TDS": data_storage["TDS"],
+        "EC": data_storage["EC"],
+        "Temperature": data_storage["Temperature"],
+        "Humidity": data_storage["Humidity"]
     })
+
 @app.route("/reset", methods=["POST"])
 def reset_data():
     try:
