@@ -8,6 +8,7 @@ from statistics import mean, median, stdev
 from colorama import Fore, Style, init
 import threading
 import numpy as np  
+import requests
 init(autoreset=True)
 app = Flask(__name__)
 app.secret_key = os.urandom(24).hex()  
@@ -25,7 +26,7 @@ data_storage = {
     "Temperature": [],
     "Humidity": []
 }
-MAX_DATA_POINTS = 200
+MAX_DATA_POINTS = 5
 logging.basicConfig(level=logging.DEBUG,
                     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
                     handlers=[logging.FileHandler("app.log"), logging.StreamHandler()])
@@ -168,9 +169,20 @@ def start_network_monitoring():
     monitor_thread.daemon = True  
     monitor_thread.start()
 
+def c_hardware():
+    url = 'https://blynk.cloud/external/api/isHardwareConnected?token='
+    response = requests.get(url + decoded_token)
+    if response.text == "true":
+        print(Fore.GREEN + "The hardware device is connected.......")
+        print(Fore.GREEN + "Start the server.........")
+        start_network_monitoring()
+        app.run(host='0.0.0.0', port=WEB_SERVER_PORT, debug=False)
+    else:
+        print(Fore.RED + f"The hardware device is not connected......")
+        print(Fore.RED + "Check network again.......")
+
 if __name__ == "__main__":
-    start_network_monitoring()
-    app.run(host='0.0.0.0', port=WEB_SERVER_PORT, debug=False)
+    c_hardware()
 
 
 
