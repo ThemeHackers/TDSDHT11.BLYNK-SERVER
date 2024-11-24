@@ -12,4 +12,4 @@ uvicorn
 tenacity
 flask-wtf
 aiohttp
-
+hypercorn
