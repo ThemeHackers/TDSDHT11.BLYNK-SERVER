@@ -11,10 +11,5 @@ eventlet
 uvicorn
 tenacity
 flask-wtf
-
-
-
-
-
-
+aiohttp
 
