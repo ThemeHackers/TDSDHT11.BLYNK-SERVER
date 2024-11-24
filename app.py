@@ -1,17 +1,15 @@
-from flask import Flask, render_template, redirect, flash
-import aiohttp
+from flask import Flask, render_template, redirect, flash, jsonify
+import requests
 import os
 import base64
 import logging
 import time
 from statistics import mean, median, stdev
 from colorama import Fore, Style, init
-import asyncio
 import threading
-import numpy as np
+import numpy as np  
 import requests
 init(autoreset=True)
-
 app = Flask(__name__)
 app.secret_key = os.urandom(24).hex()  
 
@@ -28,20 +26,22 @@ data_storage = {
     "Temperature": [],
     "Humidity": []
 }
-MAX_DATA_POINTS = 200
+MAX_DATA_POINTS = 5
 logging.basicConfig(level=logging.DEBUG,
                     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
                     handlers=[logging.FileHandler("app.log"), logging.StreamHandler()])
 logger = logging.getLogger(__name__)
 
-async def fetch_data(url, sensor_name):
+def fetch_data(url, sensor_name):
     try:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url) as response:
-                response.raise_for_status()
-                data = float(await response.text())
-                return data
-    except aiohttp.ClientError as e:
+        response = requests.get(url)
+        response.raise_for_status()
+        data = float(response.text.strip())
+        current_time = time.time()  
+        
+        return data
+    
+    except requests.exceptions.RequestException as e:
         print(f"Error fetching data from {url}: {e}")
         return None
     except ValueError:
@@ -51,36 +51,34 @@ async def fetch_data(url, sensor_name):
 
 log_lock = threading.Lock()
 
-async def network_usage_monitor():
+def network_usage_monitor():
     while True:
         try:
             with log_lock:
-                await measure_network_usage(tds_url, ec_url, temperature_url, humidity_url)
-            await asyncio.sleep(5)
+                measure_network_usage(tds_url, ec_url, temperature_url, humidity_url)
+            time.sleep(5)
         except Exception as e:
             with log_lock:
                 print(Fore.RED + f"Error in network usage monitor: {e}\n")
             break
 
-async def measure_network_usage(*urls):
+def measure_network_usage(*urls):
     total_request_size = 0
     total_response_size = 0
     for url in urls:
         try:
             request_size = len(url.encode('utf-8'))
             total_request_size += request_size
-            async with aiohttp.ClientSession() as session:
-                async with session.get(url, timeout=5) as response:
-                    response.raise_for_status()
-                    response_size = len(await response.read())
-                    total_response_size += response_size
-        except aiohttp.ClientError as e:
+            response = requests.get(url, timeout=5)
+            response.raise_for_status()
+            response_size = len(response.content)
+            total_response_size += response_size
+        except requests.exceptions.RequestException as e:
             print(Fore.RED + f"Error fetching URL: {url}, Error: {e}\n")
 
     total_size = total_request_size + total_response_size
-    total_size_mb = total_size / (1024 * 1024)  
+    total_size_mb = total_size / (1024 * 1024) 
     return total_size_mb
-
 try:
     decoded_token = base64.b64decode(BLYNK_AUTH_TOKEN).decode('utf-8')
 except Exception as e:
@@ -92,14 +90,13 @@ ec_url = f'https://blynk.cloud/external/api/get?token={decoded_token}&{BLYNK_EC_
 temperature_url = f'https://blynk.cloud/external/api/get?token={decoded_token}&{BLYNK_TEMPERATURE_PIN}'
 humidity_url = f'https://blynk.cloud/external/api/get?token={decoded_token}&{BLYNK_HUMIDITY_PIN}'
 data_send_count = 0
-
 @app.route("/")
-async def index():
+def index():
     global data_send_count 
-    tds_value = await fetch_data(tds_url, "TDS")
-    ec_value = await fetch_data(ec_url, "EC")
-    temperature_value = await fetch_data(temperature_url, "Temperature")
-    humidity_value = await fetch_data(humidity_url, "Humidity")
+    tds_value = fetch_data(tds_url, "TDS")
+    ec_value = fetch_data(ec_url, "EC")
+    temperature_value = fetch_data(temperature_url, "Temperature")
+    humidity_value = fetch_data(humidity_url, "Humidity")
     
     if tds_value is not None:
         data_storage["TDS"].append(tds_value)
@@ -148,9 +145,8 @@ async def index():
         data_send_count=data_send_count  
     )
 
-
 @app.route("/reset", methods=["POST"])
-async def reset_data():
+def reset_data():
     try:
         data_storage["TDS"] = []
         data_storage["EC"] = []
@@ -169,13 +165,14 @@ async def reset_data():
 
 
 def start_network_monitoring():
-    loop = asyncio.get_event_loop()
-    loop.create_task(network_usage_monitor())
+    monitor_thread = threading.Thread(target=network_usage_monitor)
+    monitor_thread.daemon = True  
+    monitor_thread.start()
 
 def c_hardware():
     url = 'https://blynk.cloud/external/api/isHardwareConnected?token='
     response = requests.get(url + decoded_token)
-    if response.text == "false":
+    if response.text == "true":
         print(Fore.GREEN + "The hardware device is connected.......")
         start_network_monitoring()
         app.run(host='0.0.0.0', port=WEB_SERVER_PORT, debug=False)
@@ -184,4 +181,7 @@ def c_hardware():
 
 if __name__ == "__main__":
     c_hardware()
+
+
+
 
