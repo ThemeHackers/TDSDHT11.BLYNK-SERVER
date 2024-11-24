@@ -1,4 +1,4 @@
-from flask import Flask, render_template, redirect, flash
+from flask import Flask, render_template, redirect, flash, jsonify
 import requests
 import os
 import base64
@@ -7,7 +7,7 @@ import time
 from statistics import mean, median, stdev
 from colorama import Fore, Style, init
 import threading
-
+import requests
 init(autoreset=True)
 app = Flask(__name__)
 app.secret_key = os.urandom(24).hex()  
@@ -31,23 +31,24 @@ logging.basicConfig(level=logging.DEBUG,
                     handlers=[logging.FileHandler("app.log"), logging.StreamHandler()])
 logger = logging.getLogger(__name__)
 
-
-data_lock = threading.Lock()
-log_lock = threading.Lock()
-data_send_count = 0
 def fetch_data(url, sensor_name):
     try:
         response = requests.get(url)
         response.raise_for_status()
         data = float(response.text.strip())
-     
-        if data < 0 or data > 1000: 
-            raise ValueError(f"Invalid data value for {sensor_name}: {data}")
+        current_time = time.time()  
         
         return data
-    except (requests.exceptions.RequestException, ValueError) as e:
-        logger.error(f"Error fetching data from {sensor_name}: {e}")
+    
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching data from {url}: {e}")
         return None
+    except ValueError:
+        print(f"Invalid data format received from {url}")
+        return None
+
+
+log_lock = threading.Lock()
 
 def network_usage_monitor():
     while True:
@@ -57,7 +58,7 @@ def network_usage_monitor():
             time.sleep(5)
         except Exception as e:
             with log_lock:
-                logger.error(f"Error in network usage monitor: {e}")
+                print(Fore.RED + f"Error in network usage monitor: {e}\n")
             break
 
 def measure_network_usage(*urls):
@@ -72,78 +73,59 @@ def measure_network_usage(*urls):
             response_size = len(response.content)
             total_response_size += response_size
         except requests.exceptions.RequestException as e:
-            logger.error(f"Error fetching URL: {url}, Error: {e}")
+            print(Fore.RED + f"Error fetching URL: {url}, Error: {e}\n")
 
     total_size = total_request_size + total_response_size
     total_size_mb = total_size / (1024 * 1024) 
     return total_size_mb
+try:
+    decoded_token = base64.b64decode(BLYNK_AUTH_TOKEN).decode('utf-8')
+except Exception as e:
+    logger.warning(f"Failed to decode token: {e}")
+    decoded_token = BLYNK_AUTH_TOKEN
 
-def calculate_stats(sensor_data):
-    if len(sensor_data) > 1:
-        return {
-            "mean": mean(sensor_data),
-            "median": median(sensor_data),
-            "stdev": stdev(sensor_data)
-        }
-    else:
-        return {
-            "mean": mean(sensor_data),
-            "median": median(sensor_data),
-            "stdev": 0
-        }
-
-def c_hardware():
-    url = 'https://blynk.cloud/external/api/isHardwareConnected?token='
-    retries = 3
-    for _ in range(retries):
-        response = requests.get(url + decoded_token)
-        if response.text == "false":
-            print(Fore.GREEN + "The hardware device is connected.......")
-            start_network_monitoring()
-            app.run(host='0.0.0.0', port=WEB_SERVER_PORT, debug=False)
-            return
-        else:
-            print(Fore.RED + f"Attempt {_ + 1}: The hardware device is not connected......")
-            time.sleep(5)
-    exit(1)
-
-def start_network_monitoring():
-    monitor_thread = threading.Thread(target=network_usage_monitor)
-    monitor_thread.daemon = True 
-    monitor_thread.start()
-
-
-def update_data_storage(sensor, value):
-    with data_lock:
-        data_storage[sensor].append(value)
-        if len(data_storage[sensor]) > MAX_DATA_POINTS:
-            data_storage[sensor].pop(0)
-
+tds_url = f'https://blynk.cloud/external/api/get?token={decoded_token}&{BLYNK_TDS_PIN}'
+ec_url = f'https://blynk.cloud/external/api/get?token={decoded_token}&{BLYNK_EC_PIN}'
+temperature_url = f'https://blynk.cloud/external/api/get?token={decoded_token}&{BLYNK_TEMPERATURE_PIN}'
+humidity_url = f'https://blynk.cloud/external/api/get?token={decoded_token}&{BLYNK_HUMIDITY_PIN}'
+data_send_count = 0
 @app.route("/")
 def index():
-    global data_send_count
+    global data_send_count 
     tds_value = fetch_data(tds_url, "TDS")
     ec_value = fetch_data(ec_url, "EC")
     temperature_value = fetch_data(temperature_url, "Temperature")
     humidity_value = fetch_data(humidity_url, "Humidity")
     
     if tds_value is not None:
-        update_data_storage("TDS", tds_value)
+        data_storage["TDS"].append(tds_value)
+        if len(data_storage["TDS"]) > MAX_DATA_POINTS:
+            data_storage["TDS"].pop(0)
 
     if ec_value is not None:
-        update_data_storage("EC", ec_value)
+        data_storage["EC"].append(ec_value)
+        if len(data_storage["EC"]) > MAX_DATA_POINTS:
+            data_storage["EC"].pop(0)
 
     if temperature_value is not None:
-        update_data_storage("Temperature", temperature_value)
+        data_storage["Temperature"].append(temperature_value)
+        if len(data_storage["Temperature"]) > MAX_DATA_POINTS:
+            data_storage["Temperature"].pop(0)
 
     if humidity_value is not None:
-        update_data_storage("Humidity", humidity_value)
+        data_storage["Humidity"].append(humidity_value)
+        if len(data_storage["Humidity"]) > MAX_DATA_POINTS:
+            data_storage["Humidity"].pop(0)
 
     calculating = any(len(values) < MAX_DATA_POINTS for values in data_storage.values())
 
     if not calculating:
         stats = {
-            sensor: calculate_stats(values)
+            sensor: {
+                "mean": mean(values),
+                "median": median(values),
+                "stdev": stdev(values) if len(values) > 1 else 0
+            }
             for sensor, values in data_storage.items()
         }
     else:
@@ -159,29 +141,48 @@ def index():
         stats=stats,
         calculating=calculating,
         data_count={sensor: len(values) for sensor, values in data_storage.items()},
-        data_send_count=data_send_count
+        data_send_count=data_send_count  
     )
 
 @app.route("/reset", methods=["POST"])
 def reset_data():
     try:
-        with data_lock:
-            data_storage["TDS"] = []
-            data_storage["EC"] = []
-            data_storage["Temperature"] = []
-            data_storage["Humidity"] = []
-            global data_send_count
-            data_send_count = 0
-        flash("Data has been reset successfully!", "success")
+        data_storage["TDS"] = []
+        data_storage["EC"] = []
+        data_storage["Temperature"] = []
+        data_storage["Humidity"] = []
+        global data_send_count
+        data_send_count = 0
+        if all(len(values) == 0 for values in data_storage.values()):
+            flash("Data has been reset successfully!", "success")
+        else:
+            flash("Reset failed: Data could not be cleared completely.", "warning")
         return redirect("/")
     except Exception as e:
         flash(f"An error occurred while processing: {str(e)}", "error")
         return redirect("/")
 
+
+def start_network_monitoring():
+    monitor_thread = threading.Thread(target=network_usage_monitor)
+    monitor_thread.daemon = True  
+    monitor_thread.start()
+
+def c_hardware():
+    url = 'https://blynk.cloud/external/api/isHardwareConnected?token='
+    response = requests.get(url + decoded_token)
+    if response.text == "true":
+        print(Fore.GREEN + "The hardware device is connected.......")
+        start_network_monitoring()
+        app.run(host='0.0.0.0', port=WEB_SERVER_PORT, debug=False)
+
+    else:
+        print(Fore.RED + f"The hardware device is not connected......")
+        exit(1)
+
 if __name__ == "__main__":
-    decoded_token = base64.b64decode(BLYNK_AUTH_TOKEN).decode('utf-8')
-    tds_url = f'https://blynk.cloud/external/api/get?token={decoded_token}&{BLYNK_TDS_PIN}'
-    ec_url = f'https://blynk.cloud/external/api/get?token={decoded_token}&{BLYNK_EC_PIN}'
-    temperature_url = f'https://blynk.cloud/external/api/get?token={decoded_token}&{BLYNK_TEMPERATURE_PIN}'
-    humidity_url = f'https://blynk.cloud/external/api/get?token={decoded_token}&{BLYNK_HUMIDITY_PIN}'
     c_hardware()
+
+
+
+
