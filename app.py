@@ -7,7 +7,6 @@ import time
 from statistics import mean, median, stdev
 from colorama import Fore, Style, init
 import threading
-import numpy as np  
 import requests
 init(autoreset=True)
 app = Flask(__name__)
@@ -176,8 +175,10 @@ def c_hardware():
         print(Fore.GREEN + "The hardware device is connected.......")
         start_network_monitoring()
         app.run(host='0.0.0.0', port=WEB_SERVER_PORT, debug=False)
+
     else:
         print(Fore.RED + f"The hardware device is not connected......")
+        exit(1)
 
 if __name__ == "__main__":
     c_hardware()
