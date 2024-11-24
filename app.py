@@ -25,7 +25,7 @@ data_storage = {
     "Temperature": [],
     "Humidity": []
 }
-MAX_DATA_POINTS = 5
+MAX_DATA_POINTS = 200
 logging.basicConfig(level=logging.DEBUG,
                     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
                     handlers=[logging.FileHandler("app.log"), logging.StreamHandler()])
