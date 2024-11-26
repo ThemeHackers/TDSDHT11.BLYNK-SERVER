@@ -1,4 +1,4 @@
-from flask import Flask, render_template, redirect, flash, jsonify
+from flask import Flask, render_template, redirect, flash, url_for, session
 import requests
 import os
 import base64
@@ -91,31 +91,17 @@ humidity_url = f'https://blynk.cloud/external/api/get?token={decoded_token}&{BLY
 data_send_count = 0
 @app.route("/")
 def index():
-    global data_send_count 
+    global data_send_count
     tds_value = fetch_data(tds_url, "TDS")
     ec_value = fetch_data(ec_url, "EC")
     temperature_value = fetch_data(temperature_url, "Temperature")
     humidity_value = fetch_data(humidity_url, "Humidity")
-    
-    if tds_value is not None:
-        data_storage["TDS"].append(tds_value)
-        if len(data_storage["TDS"]) > MAX_DATA_POINTS:
-            data_storage["TDS"].pop(0)
 
-    if ec_value is not None:
-        data_storage["EC"].append(ec_value)
-        if len(data_storage["EC"]) > MAX_DATA_POINTS:
-            data_storage["EC"].pop(0)
-
-    if temperature_value is not None:
-        data_storage["Temperature"].append(temperature_value)
-        if len(data_storage["Temperature"]) > MAX_DATA_POINTS:
-            data_storage["Temperature"].pop(0)
-
-    if humidity_value is not None:
-        data_storage["Humidity"].append(humidity_value)
-        if len(data_storage["Humidity"]) > MAX_DATA_POINTS:
-            data_storage["Humidity"].pop(0)
+    for sensor, value in [("TDS", tds_value), ("EC", ec_value), ("Temperature", temperature_value), ("Humidity", humidity_value)]:
+        if value is not None:
+            data_storage[sensor].append(value)
+            if len(data_storage[sensor]) > MAX_DATA_POINTS:
+                data_storage[sensor].pop(0)
 
     calculating = any(len(values) < MAX_DATA_POINTS for values in data_storage.values())
 
@@ -130,10 +116,13 @@ def index():
         }
     else:
         stats = None
+
     data_send_count += 1
 
+
+    language = session.get("language", "EN")  
     return render_template(
-        "dashboard.html",
+        f"dashboard_{language.lower()}.html",
         tds=tds_value,
         ec=ec_value,
         temperature=temperature_value,
@@ -141,9 +130,15 @@ def index():
         stats=stats,
         calculating=calculating,
         data_count={sensor: len(values) for sensor, values in data_storage.items()},
-        data_send_count=data_send_count  
+        data_send_count=data_send_count,
+        language=language
     )
 
+@app.route("/toggle_language")
+def toggle_language():
+    current_language = session.get("language", "EN")
+    session["language"] = "TH" if current_language == "EN" else "EN"
+    return redirect(url_for("index"))
 @app.route("/reset", methods=["POST"])
 def reset_data():
     try:
