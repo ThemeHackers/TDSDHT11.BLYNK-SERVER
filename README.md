@@ -21,7 +21,7 @@ This project is a **web application for monitoring and visualizing IoT sensor da
 
 ## Technologies Used
 
-- **FastAPI**: Backend framework for handling web requests.
+- **Flask**: Backend framework for handling web requests.
 - **Jinja2**: Templating engine used to render the HTML dashboard.
 - **Blynk API**: Interface for connecting to IoT devices and fetching sensor data.
 - **Asyncio**: Used for asynchronous tasks to fetch data and handle multiple requests concurrently.
