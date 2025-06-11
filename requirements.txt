@@ -13,3 +13,4 @@ tenacity
 flask-wtf
 aiohttp
 hypercorn
+python-dotenv
