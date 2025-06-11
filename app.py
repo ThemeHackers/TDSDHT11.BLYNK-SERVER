@@ -8,11 +8,12 @@ from statistics import mean, median, stdev
 from colorama import Fore, Style, init
 import threading
 import requests
+from dotenv import load_dotenv
 init(autoreset=True)
 app = Flask(__name__)
 app.secret_key = os.urandom(24).hex()  
-
-BLYNK_AUTH_TOKEN = os.getenv('BLYNK_AUTH_TOKEN', 'YWNQeFFtWkZfMHN3WVBhN0FOa2FBOVprenliR2djeWo=') 
+load_dotenv()
+BLYNK_AUTH_TOKEN = os.getenv('BLYNK_AUTH_TOKEN', '') 
 BLYNK_TDS_PIN = "V0"
 BLYNK_EC_PIN = "V7"
 BLYNK_TEMPERATURE_PIN = "V2"
@@ -177,7 +178,4 @@ def c_hardware():
 
 if __name__ == "__main__":
     c_hardware()
-
-
-
 
